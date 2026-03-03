@@ -22,12 +22,24 @@ export default function MainApp({ session }) {
   const [showAdd, setShowAdd] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [statusFilter, setStatusFilter] = useState(null) // for cross-page status filter
 
   const username = session?.user?.user_metadata?.username || session?.user?.email?.split('@')[0] || 'User'
 
   const handleLogout = async () => { await supabase.auth.signOut() }
   const handleAdded = () => { setRefreshKey(k => k + 1); setShowAdd(false) }
   const activeItem = NAV_ITEMS.find(n => n.id === activeTab)
+
+  // When clicking a status card on dashboard, go to a special "all" filtered view
+  const handleStatusClick = (status) => {
+    setStatusFilter(status)
+    setActiveTab('all')
+  }
+
+  const handleNavigate = (tab) => {
+    setStatusFilter(null)
+    setActiveTab(tab)
+  }
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
@@ -65,7 +77,7 @@ export default function MainApp({ session }) {
         <nav style={{ flex: 1, padding: '12px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '2px' }}>
           {NAV_ITEMS.map(item => (
             <button key={item.id} className={`nav-item ${activeTab === item.id ? 'active' : ''}`}
-              onClick={() => { setActiveTab(item.id); setSidebarOpen(false) }}>
+              onClick={() => { handleNavigate(item.id); setSidebarOpen(false) }}>
               <item.icon size={16} />
               {item.label}
             </button>
@@ -92,7 +104,9 @@ export default function MainApp({ session }) {
             <Menu size={20} />
           </button>
           <h1 style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-            {activeItem?.label || 'Dashboard'}
+            {activeTab === 'all'
+              ? { watching: 'Currently Watching', completed: 'Completed', plan_to_watch: 'Plan to Watch', dropped: 'Dropped' }[statusFilter]
+              : activeItem?.label || 'Dashboard'}
           </h1>
           <div style={{ marginLeft: 'auto' }}>
             <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
@@ -102,9 +116,10 @@ export default function MainApp({ session }) {
         </header>
 
         <div style={{ padding: '24px 28px' }} key={refreshKey}>
-          {activeTab === 'dashboard' && <Dashboard onNavigate={setActiveTab} userId={session.user.id} />}
+          {activeTab === 'dashboard' && <Dashboard onNavigate={handleNavigate} onStatusClick={handleStatusClick} userId={session.user.id} />}
           {activeTab === 'stats'     && <StatsPage userId={session.user.id} />}
-          {!['dashboard','stats'].includes(activeTab) && (
+          {activeTab === 'all'       && <MediaList category={null} userId={session.user.id} onAdd={() => setShowAdd(true)} defaultStatus={statusFilter} />}
+          {!['dashboard','stats','all'].includes(activeTab) && (
             <MediaList category={activeItem?.category} userId={session.user.id} onAdd={() => setShowAdd(true)} />
           )}
         </div>
