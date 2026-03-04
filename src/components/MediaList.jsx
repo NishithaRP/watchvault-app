@@ -192,10 +192,10 @@ function MediaCard({ item, onEdit, onDelete, showCategory, cardSize }) {
       onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
 
       {/* Poster */}
-      <div style={{ height: isCompact ? '200px' : '260px', background: 'var(--bg-secondary)', position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
+      <div style={{ height: isCompact ? '200px' : '260px', background: 'var(--bg-secondary)', position: 'relative', overflow: 'hidden', flexShrink: 0, lineHeight: 0 }}>
         {item.image_url
-          ? <img src={item.image_url} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.3s', transform: hovered ? 'scale(1.05)' : 'scale(1)' }} />
-          : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Film size={isCompact ? 32 : 40} style={{ color: 'var(--text-muted)' }} /></div>
+          ? <img src={item.image_url} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top', display: 'block', transition: 'transform 0.3s', transform: hovered ? 'scale(1.05)' : 'scale(1)' }} />
+          : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-secondary)' }}><Film size={isCompact ? 32 : 40} style={{ color: 'var(--text-muted)' }} /></div>
         }
 
 

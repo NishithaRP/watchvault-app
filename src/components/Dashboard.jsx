@@ -26,10 +26,10 @@ function RecentCard({ item, cardSize }) {
   return (
     <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
       {/* Poster */}
-      <div style={{ height: isCompact ? '200px' : '260px', background: 'var(--bg-secondary)', position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
+      <div style={{ height: isCompact ? '200px' : '260px', background: 'var(--bg-secondary)', position: 'relative', overflow: 'hidden', flexShrink: 0, lineHeight: 0 }}>
         {item.image_url
-          ? <img src={item.image_url} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          ? <img src={item.image_url} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top', display: 'block' }} />
+          : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-secondary)' }}>
               <Film size={isCompact ? 32 : 40} style={{ color: 'var(--text-muted)' }} />
             </div>
         }
