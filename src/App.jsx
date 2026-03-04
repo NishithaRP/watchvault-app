@@ -3,10 +3,14 @@ import { supabase } from './lib/supabase'
 import LoginPage from './pages/LoginPage'
 import MainApp from './pages/MainApp'
 
+// Apply theme immediately before React renders
+const savedTheme = localStorage.getItem('wv-theme') || 'dark'
+document.documentElement.setAttribute('data-theme', savedTheme)
+
 export default function App() {
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [theme, setTheme] = useState(() => localStorage.getItem('wv-theme') || 'dark')
+  const [theme, setTheme] = useState(savedTheme)
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
