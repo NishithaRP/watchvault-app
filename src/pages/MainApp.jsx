@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
-import { Film, Tv, Sparkles, BookOpen, LayoutDashboard, LogOut, Plus, Menu, X, BarChart2 } from 'lucide-react'
+import { Film, Tv, Sparkles, BookOpen, LayoutDashboard, LogOut, Plus, Menu, X, BarChart2, Sun, Moon } from 'lucide-react'
 import Dashboard from '../components/Dashboard'
 import MediaList from '../components/MediaList'
 import AddMediaModal from '../components/AddMediaModal'
@@ -17,12 +17,17 @@ const NAV_ITEMS = [
   { id: 'manhwa',     label: 'Manhwa',    icon: BookOpen,  category: 'manhwa' },
 ]
 
-export default function MainApp({ session }) {
+const STATUS_LABELS_MAP = {
+  watching: 'Currently Watching', completed: 'Completed',
+  plan_to_watch: 'Plan to Watch', dropped: 'Dropped',
+}
+
+export default function MainApp({ session, theme, toggleTheme }) {
   const [activeTab, setActiveTab] = useState('dashboard')
   const [showAdd, setShowAdd] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [statusFilter, setStatusFilter] = useState(null) // for cross-page status filter
+  const [statusFilter, setStatusFilter] = useState(null)
 
   const username = session?.user?.user_metadata?.username || session?.user?.email?.split('@')[0] || 'User'
 
@@ -30,16 +35,12 @@ export default function MainApp({ session }) {
   const handleAdded = () => { setRefreshKey(k => k + 1); setShowAdd(false) }
   const activeItem = NAV_ITEMS.find(n => n.id === activeTab)
 
-  // When clicking a status card on dashboard, go to a special "all" filtered view
-  const handleStatusClick = (status) => {
-    setStatusFilter(status)
-    setActiveTab('all')
-  }
+  const handleStatusClick = (status) => { setStatusFilter(status); setActiveTab('all') }
+  const handleNavigate = (tab) => { setStatusFilter(null); setActiveTab(tab) }
 
-  const handleNavigate = (tab) => {
-    setStatusFilter(null)
-    setActiveTab(tab)
-  }
+  const pageTitle = activeTab === 'all'
+    ? STATUS_LABELS_MAP[statusFilter]
+    : activeItem?.label || 'Dashboard'
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
@@ -50,6 +51,7 @@ export default function MainApp({ session }) {
         position: 'fixed', top: 0, left: 0, height: '100vh', zIndex: 100,
         transition: 'transform 0.3s ease'
       }}>
+        {/* Logo */}
         <div style={{ padding: '20px 20px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -62,6 +64,7 @@ export default function MainApp({ session }) {
           </button>
         </div>
 
+        {/* User */}
         <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: '8px', background: 'var(--bg-card)' }}>
             <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 700, color: 'white', flexShrink: 0 }}>
@@ -74,6 +77,7 @@ export default function MainApp({ session }) {
           </div>
         </div>
 
+        {/* Nav */}
         <nav style={{ flex: 1, padding: '12px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '2px' }}>
           {NAV_ITEMS.map(item => (
             <button key={item.id} className={`nav-item ${activeTab === item.id ? 'active' : ''}`}
@@ -84,7 +88,17 @@ export default function MainApp({ session }) {
           ))}
         </nav>
 
+        {/* Bottom actions */}
         <div style={{ padding: '12px', borderTop: '1px solid var(--border)' }}>
+          {/* Theme toggle */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', marginBottom: '8px', borderRadius: '8px', background: 'var(--bg-card)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--text-secondary)' }}>
+              {theme === 'dark' ? <Moon size={15} /> : <Sun size={15} />}
+              {theme === 'dark' ? 'Dark Mode' : 'Light Mode'}
+            </div>
+            <button className={`theme-toggle ${theme === 'dark' ? 'dark' : ''}`} onClick={toggleTheme} />
+          </div>
+
           <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }} onClick={() => setShowAdd(true)}>
             <Plus size={16} /> Add Entry
           </button>
@@ -98,17 +112,18 @@ export default function MainApp({ session }) {
         <div onClick={() => setSidebarOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 99 }} />
       )}
 
+      {/* Main */}
       <main style={{ flex: 1, marginLeft: '240px', overflow: 'auto', minHeight: '100vh', background: 'var(--bg-primary)' }}>
         <header style={{ padding: '16px 28px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '16px', background: 'var(--bg-primary)', position: 'sticky', top: 0, zIndex: 50 }}>
           <button className="btn btn-ghost" style={{ padding: '6px' }} onClick={() => setSidebarOpen(true)}>
             <Menu size={20} />
           </button>
-          <h1 style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-            {activeTab === 'all'
-              ? { watching: 'Currently Watching', completed: 'Completed', plan_to_watch: 'Plan to Watch', dropped: 'Dropped' }[statusFilter]
-              : activeItem?.label || 'Dashboard'}
-          </h1>
-          <div style={{ marginLeft: 'auto' }}>
+          <h1 style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--text-primary)' }}>{pageTitle}</h1>
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {/* Theme toggle in header too (visible on mobile) */}
+            <button onClick={toggleTheme} className="btn btn-ghost" style={{ padding: '8px', borderRadius: '8px' }} title="Toggle theme">
+              {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
             <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
               <Plus size={16} /> Add Entry
             </button>
