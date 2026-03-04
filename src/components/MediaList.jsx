@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import { Film, Search, Star, Trash2, Edit2, Plus, Globe } from 'lucide-react'
+import { Film, Search, Star, Trash2, Edit2, Plus, Globe, LayoutGrid, Grid } from 'lucide-react'
 import EditMediaModal from './EditMediaModal'
 
 const STATUS_LABELS = {
@@ -19,11 +19,6 @@ const CATEGORY_CONFIG = {
   manhwa:    { label: 'Manhwa',     emoji: '📖' },
 }
 
-const STATUS_LABELS_MAP = {
-  watching: 'Currently Watching', completed: 'Completed',
-  plan_to_watch: 'Plan to Watch', dropped: 'Dropped',
-}
-
 export default function MediaList({ category, userId, onAdd, defaultStatus }) {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
@@ -34,8 +29,14 @@ export default function MediaList({ category, userId, onAdd, defaultStatus }) {
   const [subcatFilter, setSubcatFilter] = useState('all')
   const [editItem, setEditItem] = useState(null)
   const [countries, setCountries] = useState([])
+  const [cardSize, setCardSize] = useState(() => localStorage.getItem('wv-cardsize') || 'detailed')
 
   useEffect(() => { loadItems() }, [category, userId])
+
+  const toggleCardSize = (size) => {
+    setCardSize(size)
+    localStorage.setItem('wv-cardsize', size)
+  }
 
   const loadItems = async () => {
     setLoading(true)
@@ -67,14 +68,19 @@ export default function MediaList({ category, userId, onAdd, defaultStatus }) {
     return matchSearch && matchStatus && matchCountry && matchCat && matchSubcat
   })
 
+  const gridCols = cardSize === 'compact'
+    ? 'repeat(auto-fill, minmax(155px, 1fr))'
+    : 'repeat(auto-fill, minmax(200px, 1fr))'
+
   return (
     <div className="fade-in">
-      {/* Filters */}
+      {/* Filters + size toggle */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '24px', alignItems: 'center' }}>
         <div style={{ position: 'relative', flex: '1', minWidth: '200px' }}>
           <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
           <input className="input" placeholder="Search..." value={search} onChange={e => setSearch(e.target.value)} style={{ paddingLeft: '36px' }} />
         </div>
+
         <select className="input" value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ width: 'auto', minWidth: '140px' }}>
           <option value="all">All Status</option>
           <option value="watching">Watching</option>
@@ -82,12 +88,14 @@ export default function MediaList({ category, userId, onAdd, defaultStatus }) {
           <option value="plan_to_watch">Plan to Watch</option>
           <option value="dropped">Dropped</option>
         </select>
+
         {isAllCategories && (
           <select className="input" value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} style={{ width: 'auto', minWidth: '140px' }}>
             <option value="all">All Categories</option>
             {Object.entries(CATEGORY_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
           </select>
         )}
+
         {hasSubcategory && (
           <select className="input" value={subcatFilter} onChange={e => setSubcatFilter(e.target.value)} style={{ width: 'auto', minWidth: '130px' }}>
             <option value="all">All Types</option>
@@ -95,21 +103,53 @@ export default function MediaList({ category, userId, onAdd, defaultStatus }) {
             <option value="movie">Movies</option>
           </select>
         )}
+
         {countries.length > 0 && (
           <select className="input" value={countryFilter} onChange={e => setCountryFilter(e.target.value)} style={{ width: 'auto', minWidth: '140px' }}>
             <option value="all">All Countries</option>
             {countries.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
         )}
-        <div style={{ marginLeft: 'auto', color: 'var(--text-muted)', fontSize: '13px', whiteSpace: 'nowrap' }}>
+
+        {/* Card size toggle */}
+        <div style={{ display: 'flex', background: 'var(--bg-secondary)', borderRadius: '8px', padding: '3px', gap: '2px', border: '1px solid var(--border)' }}>
+          <button
+            onClick={() => toggleCardSize('compact')}
+            title="Compact view"
+            style={{
+              padding: '6px 10px', borderRadius: '6px', border: 'none', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: '5px',
+              background: cardSize === 'compact' ? 'var(--accent)' : 'transparent',
+              color: cardSize === 'compact' ? 'white' : 'var(--text-muted)',
+              fontSize: '12px', fontWeight: 600, fontFamily: 'var(--font-body)',
+              transition: 'all 0.2s'
+            }}>
+            <Grid size={14} /> Compact
+          </button>
+          <button
+            onClick={() => toggleCardSize('detailed')}
+            title="Detailed view"
+            style={{
+              padding: '6px 10px', borderRadius: '6px', border: 'none', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: '5px',
+              background: cardSize === 'detailed' ? 'var(--accent)' : 'transparent',
+              color: cardSize === 'detailed' ? 'white' : 'var(--text-muted)',
+              fontSize: '12px', fontWeight: 600, fontFamily: 'var(--font-body)',
+              transition: 'all 0.2s'
+            }}>
+            <LayoutGrid size={14} /> Detailed
+          </button>
+        </div>
+
+        <div style={{ color: 'var(--text-muted)', fontSize: '13px', whiteSpace: 'nowrap' }}>
           {filtered.length} {filtered.length === 1 ? 'entry' : 'entries'}
         </div>
       </div>
 
       {/* Grid */}
       {loading ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px' }}>
-          {[...Array(8)].map((_, i) => <div key={i} className="card" style={{ height: '340px', animation: 'pulse 1.5s infinite' }} />)}
+        <div style={{ display: 'grid', gridTemplateColumns: gridCols, gap: '16px' }}>
+          {[...Array(8)].map((_, i) => <div key={i} className="card" style={{ height: cardSize === 'compact' ? '280px' : '340px', animation: 'pulse 1.5s infinite' }} />)}
         </div>
       ) : filtered.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '80px 40px', background: 'var(--bg-card)', borderRadius: '16px', border: '1px dashed var(--border-light)' }}>
@@ -121,12 +161,13 @@ export default function MediaList({ category, userId, onAdd, defaultStatus }) {
           {items.length === 0 && <button className="btn btn-primary" onClick={onAdd}><Plus size={16} /> Add Entry</button>}
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: gridCols, gap: '16px' }}>
           {filtered.map(item => (
             <MediaCard key={item.id} item={item}
               onEdit={() => setEditItem(item)}
               onDelete={() => handleDelete(item.id)}
-              showCategory={isAllCategories} />
+              showCategory={isAllCategories}
+              cardSize={cardSize} />
           ))}
         </div>
       )}
@@ -140,23 +181,26 @@ export default function MediaList({ category, userId, onAdd, defaultStatus }) {
   )
 }
 
-function MediaCard({ item, onEdit, onDelete, showCategory }) {
+function MediaCard({ item, onEdit, onDelete, showCategory, cardSize }) {
   const [hovered, setHovered] = useState(false)
   const statusCfg = STATUS_LABELS[item.status]
   const catCfg = CATEGORY_CONFIG[item.category]
+  const isCompact = cardSize === 'compact'
 
   return (
     <div className="card" style={{ position: 'relative', display: 'flex', flexDirection: 'column' }}
       onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
 
       {/* Poster */}
-      <div style={{ height: '260px', background: 'var(--bg-secondary)', position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
+      <div style={{ height: isCompact ? '200px' : '260px', background: 'var(--bg-secondary)', position: 'relative', overflow: 'hidden', flexShrink: 0 }}>
         {item.image_url
           ? <img src={item.image_url} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.3s', transform: hovered ? 'scale(1.05)' : 'scale(1)' }} />
-          : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Film size={40} style={{ color: 'var(--text-muted)' }} /></div>
+          : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Film size={isCompact ? 32 : 40} style={{ color: 'var(--text-muted)' }} /></div>
         }
 
-        {/* Edit/Delete overlay on hover */}
+
+
+        {/* Hover edit/delete overlay */}
         {hovered && (
           <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', animation: 'fadeIn 0.15s ease' }}>
             <button onClick={onEdit} style={{ padding: '10px', borderRadius: '10px', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><Edit2 size={16} /></button>
@@ -166,44 +210,49 @@ function MediaCard({ item, onEdit, onDelete, showCategory }) {
       </div>
 
       {/* Info section */}
-      <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
+      <div style={{ padding: isCompact ? '8px 10px' : '12px 14px', display: 'flex', flexDirection: 'column', gap: isCompact ? '4px' : '8px', flex: 1 }}>
 
         {/* Title */}
-        <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.3 }}>
+        <div style={{ fontSize: isCompact ? '12px' : '14px', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.3 }}>
           {item.name}
         </div>
 
-        {/* Category tag */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', background: 'var(--bg-secondary)', borderRadius: '5px', padding: '2px 8px' }}>
+        {/* Category + Country — both modes */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)', background: 'var(--bg-secondary)', borderRadius: '5px', padding: '2px 6px' }}>
             {catCfg?.emoji} {item.subcategory ? `${catCfg?.label} ${item.subcategory}` : catCfg?.label}
           </span>
-          {item.country && (
+          {item.country && !isCompact && (
             <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '2px' }}>
               <Globe size={10} /> {item.country}
             </span>
           )}
         </div>
 
-        {/* Status badge */}
-        <div>
-          <span className={`badge ${statusCfg?.class}`}>
-            {statusCfg?.label}
-          </span>
-        </div>
+        {/* Status — both modes */}
+        <span className={`badge ${statusCfg?.class}`} style={{ fontSize: isCompact ? '10px' : '11px', padding: isCompact ? '2px 7px' : '3px 10px' }}>
+          {statusCfg?.label}
+        </span>
 
-        {/* Rating */}
-        {item.rating && (
+        {/* Rating — both modes */}
+        {item.rating ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <Star size={13} style={{ color: 'var(--gold)', fill: 'var(--gold)' }} />
-            <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--gold)' }}>{item.rating}/10</span>
+            <Star size={isCompact ? 11 : 13} style={{ color: 'var(--gold)', fill: 'var(--gold)' }} />
+            <span style={{ fontSize: isCompact ? '11px' : '13px', fontWeight: 700, color: 'var(--gold)' }}>{item.rating}/10</span>
+          </div>
+        ) : null}
+
+        {/* Seasons — both modes */}
+        {item.seasons && (
+          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+            📺 {item.current_season ? `S${item.current_season}/${item.seasons}` : `${item.seasons} Season${item.seasons > 1 ? 's' : ''}`}
           </div>
         )}
 
-        {/* Seasons */}
-        {item.seasons && (
-          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-            📺 {item.current_season ? `Season ${item.current_season} of ${item.seasons}` : `${item.seasons} Season${item.seasons > 1 ? 's' : ''}`}
+        {/* Compact: country shown small at bottom */}
+        {isCompact && item.country && (
+          <div style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '2px' }}>
+            <Globe size={9} /> {item.country}
           </div>
         )}
       </div>
