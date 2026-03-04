@@ -121,3 +121,29 @@ select.input option { background: var(--bg-card); color: var(--text-primary); }
 [data-theme="light"] header {
   box-shadow: 0 1px 8px rgba(0,0,0,0.06);
 }
+
+/* ── MOBILE RESPONSIVE ── */
+@media (max-width: 767px) {
+  /* Filters stack vertically */
+  .filters-bar {
+    flex-direction: column;
+  }
+
+  /* Modal full screen on mobile */
+  .modal {
+    max-width: 100%;
+    max-height: 95vh;
+    border-radius: 16px 16px 0 0;
+    margin-top: auto;
+  }
+
+  .modal-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  /* Cards grid tighter on mobile */
+  .card:hover {
+    transform: none;
+  }
+}
