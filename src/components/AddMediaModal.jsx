@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { X, Search, Check, Loader } from 'lucide-react'
-import { searchPosters } from '../lib/posterSearch'
+import { searchPosters } from './posterSearch'
 
 const CATEGORIES = [
   { value: 'movie',     label: '🎬 Movie' },
