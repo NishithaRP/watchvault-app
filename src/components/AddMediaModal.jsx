@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { X, Search, Check, Loader } from 'lucide-react'
-import { searchPosters } from './posterSearch'
+import { searchPosters, fetchTMDBDetails } from './posterSearch'
 
 const CATEGORIES = [
-  { value: 'movie',     label: '🎬 Movie' },
+  { value: 'movie',     label: '🎼 Movie' },
   { value: 'series',    label: '📺 TV Series' },
   { value: 'anime',     label: '✨ Anime' },
   { value: 'animation', label: '🎨 Animation' },
@@ -49,6 +49,7 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
   const [searching, setSearching] = useState(false)
   const [selectedPoster, setSelectedPoster] = useState(null)
   const [showResults, setShowResults] = useState(false)
+  const [loadingDetails, setLoadingDetails] = useState(false)
   const searchTimer = useRef(null)
 
   const set = (key, val) => setForm(f => ({ ...f, [key]: val }))
@@ -75,11 +76,25 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
     return () => clearTimeout(searchTimer.current)
   }, [form.name, form.category])
 
-  const handleSelectPoster = (result) => {
+  const handleSelectPoster = async (result) => {
     setSelectedPoster(result)
     set('image_url', result.poster)
     set('name', result.title)
     setShowResults(false)
+
+    // Auto-fill country from AniList results
+    if (result.country) {
+      set('country', result.country)
+    }
+
+    // Auto-fill country + seasons from TMDB for TV series
+    if (result.source === 'TMDB' && result.tmdbId) {
+      setLoadingDetails(true)
+      const details = await fetchTMDBDetails(result.tmdbId, result.mediaType)
+      if (details.country) set('country', details.country)
+      if (details.seasons) set('seasons', String(details.seasons))
+      setLoadingDetails(false)
+    }
   }
 
   const handleClearPoster = () => {
@@ -144,7 +159,7 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
                   {['series', 'movie'].map(sub => (
                     <button key={sub} onClick={() => set('subcategory', sub)}
                       style={{ flex: 1, padding: '8px', borderRadius: '8px', border: '1px solid', borderColor: form.subcategory === sub ? 'var(--accent)' : 'var(--border)', background: form.subcategory === sub ? 'var(--accent-dim)' : 'var(--bg-secondary)', color: form.subcategory === sub ? 'var(--accent)' : 'var(--text-secondary)', cursor: 'pointer', fontSize: '13px', fontWeight: 600, fontFamily: 'var(--font-body)', transition: 'all 0.15s' }}>
-                      {sub === 'series' ? '📺 Series' : '🎬 Movie'}
+                      {sub === 'series' ? '📺 Series' : '🎼 Movie'}
                     </button>
                   ))}
                 </div>
@@ -170,7 +185,7 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
 
                 {/* Results dropdown */}
                 {showResults && (
-                  <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 500, background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: '10px', marginTop: '6px', padding: '10px', boxShadow: '0 8px 32px rgba(0,0,0,0.4)', maxHeight: '340px', overflowY: 'auto' }}>
+                  <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 500, background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: '10px', marginTop: '6px', padding: '10px', boxShadow: '0 8px 32px rgba(0,0,0,0.4)', maxHeight: '220px', overflowY: 'auto' }}>
                     <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                       Select a poster
                     </div>
@@ -180,7 +195,6 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
                           style={{ background: 'none', border: '2px solid', borderColor: selectedPoster?.id === result.id ? 'var(--accent)' : 'transparent', borderRadius: '8px', cursor: 'pointer', padding: 0, overflow: 'hidden', position: 'relative', transition: 'border-color 0.15s' }}>
                           <img src={result.poster} alt={result.title}
                             style={{ width: '100%', aspectRatio: '2/3', objectFit: 'cover', display: 'block' }} />
-                          {/* Source badge */}
                           <div style={{ position: 'absolute', top: '5px', left: '5px', background: SOURCE_LABELS[result.source]?.color || '#333', borderRadius: '3px', padding: '1px 5px', fontSize: '9px', fontWeight: 700, color: 'white' }}>
                             {result.source}
                           </div>
@@ -217,6 +231,7 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
                     <span style={{ fontSize: '10px', fontWeight: 700, padding: '1px 6px', borderRadius: '3px', background: SOURCE_LABELS[selectedPoster.source]?.color, color: 'white' }}>
                       {selectedPoster.source}
                     </span>
+                    {loadingDetails && <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Fetching details...</span>}
                   </div>
                   <div style={{ display: 'flex', gap: '10px' }}>
                     <button onClick={() => setShowResults(true)} style={{ fontSize: '11px', color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-body)', padding: 0 }}>Change poster</button>

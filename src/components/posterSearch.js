@@ -1,6 +1,16 @@
 const TMDB_TOKEN = import.meta.env.VITE_TMDB_TOKEN
 
-// TMDB — best free option, unlimited requests, great posters
+const TMDB_COUNTRY_MAP = {
+  US: 'USA', GB: 'UK', JP: 'Japan', KR: 'South Korea', CN: 'China',
+  FR: 'France', DE: 'Germany', ES: 'Spain', IT: 'Italy', IN: 'India',
+  AU: 'Australia', CA: 'Canada', BR: 'Brazil', MX: 'Mexico',
+  TH: 'Thailand', PH: 'Philippines', TW: 'Taiwan', HK: 'Hong Kong',
+}
+
+const ANILIST_COUNTRY_MAP = {
+  JP: 'Japan', KR: 'South Korea', CN: 'China', TW: 'Taiwan',
+}
+
 async function searchTMDB(query, category) {
   if (!TMDB_TOKEN || !query.trim()) return []
   try {
@@ -16,6 +26,8 @@ async function searchTMDB(query, category) {
       .slice(0, 6)
       .map(r => ({
         id: `tmdb-${r.id}`,
+        tmdbId: r.id,
+        mediaType: r.media_type || (isMovie ? 'movie' : 'tv'),
         title: r.title || r.name,
         poster: `https://image.tmdb.org/t/p/w300${r.poster_path}`,
         year: (r.release_date || r.first_air_date || '').slice(0, 4),
@@ -24,8 +36,23 @@ async function searchTMDB(query, category) {
   } catch { return [] }
 }
 
-// AniList — free, no key needed
-// Covers anime, manhwa, donghua
+// Fetch extra details from TMDB (country + seasons)
+export async function fetchTMDBDetails(tmdbId, mediaType) {
+  if (!TMDB_TOKEN) return {}
+  try {
+    const res = await fetch(
+      `https://api.themoviedb.org/3/${mediaType}/${tmdbId}?language=en-US`,
+      { headers: { Authorization: `Bearer ${TMDB_TOKEN}`, 'Content-Type': 'application/json' } }
+    )
+    const data = await res.json()
+    const countryCode = (data.origin_country?.[0]) ||
+      (data.production_countries?.[0]?.iso_3166_1) || ''
+    const country = TMDB_COUNTRY_MAP[countryCode] || ''
+    const seasons = data.number_of_seasons || null
+    return { country, seasons }
+  } catch { return {} }
+}
+
 async function searchAniList(query, category) {
   if (!query.trim()) return []
 
@@ -48,6 +75,7 @@ async function searchAniList(query, category) {
           coverImage { large }
           startDate { year }
           countryOfOrigin
+          episodes
         }
       }
     }
@@ -67,12 +95,12 @@ async function searchAniList(query, category) {
         title: m.title.english || m.title.romaji || m.title.native,
         poster: m.coverImage.large,
         year: m.startDate?.year ? String(m.startDate.year) : '',
+        country: ANILIST_COUNTRY_MAP[m.countryOfOrigin] || '',
         source: 'AniList',
       }))
   } catch { return [] }
 }
 
-// Main export — TMDB for movies/series, AniList for everything else
 export async function searchPosters(query, category) {
   if (!query || query.trim().length < 2) return []
   if (['movie', 'series'].includes(category)) return searchTMDB(query, category)
