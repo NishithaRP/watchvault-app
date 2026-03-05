@@ -51,6 +51,7 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
   const [showResults, setShowResults] = useState(false)
   const [loadingDetails, setLoadingDetails] = useState(false)
   const searchTimer = useRef(null)
+  const posterJustSelected = useRef(false)
 
   const set = (key, val) => setForm(f => ({ ...f, [key]: val }))
 
@@ -59,11 +60,21 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
     (!isSeries || form.subcategory === 'series')
 
   useEffect(() => {
+    // Don't search if poster was just selected
+    if (posterJustSelected.current) {
+      posterJustSelected.current = false
+      return
+    }
+
     if (!form.name.trim() || form.name.length < 2) {
       setSearchResults([])
       setShowResults(false)
       return
     }
+
+    // Don't search if a poster is already selected
+    if (selectedPoster) return
+
     clearTimeout(searchTimer.current)
     searchTimer.current = setTimeout(async () => {
       setSearching(true)
@@ -76,10 +87,13 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
   }, [form.name, form.category])
 
   const handleSelectPoster = async (result) => {
+    posterJustSelected.current = true
+    clearTimeout(searchTimer.current)
     setSelectedPoster(result)
     set('image_url', result.poster)
     set('name', result.title)
     setShowResults(false)
+    setSearchResults([])
 
     // Auto-fill country if already available
     if (result.country) set('country', result.country)
