@@ -36,62 +36,6 @@ async function searchTMDB(query, category) {
   } catch { return [] }
 }
 
-// Fetch extra details from TMDB (country + seasons)
-export async function fetchTMDBDetails(tmdbId, mediaType) {
-  if (!TMDB_TOKEN) return {}
-  try {
-    const res = await fetch(
-      `https://api.themoviedb.org/3/${mediaType}/${tmdbId}?language=en-US`,
-      { headers: { Authorization: `Bearer ${TMDB_TOKEN}`, 'Content-Type': 'application/json' } }
-    )
-    const data = await res.json()
-    const countryCode = (data.origin_country?.[0]) ||
-      (data.production_countries?.[0]?.iso_3166_1) || ''
-    const country = TMDB_COUNTRY_MAP[countryCode] || ''
-    const seasons = data.number_of_seasons || null
-    return { country, seasons }
-  } catch { return {} }
-}
-
-// Fetch anime seasons + country from AniList using relations
-export async function fetchAniListDetails(anilistId) {
-  try {
-    const gql = `
-      query ($id: Int) {
-        Media(id: $id, type: ANIME) {
-          countryOfOrigin
-          relations {
-            edges {
-              relationType
-              node {
-                id
-                type
-              }
-            }
-          }
-        }
-      }
-    `
-    const res = await fetch('https://graphql.anilist.co', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({ query: gql, variables: { id: anilistId } }),
-    })
-    const data = await res.json()
-    const media = data?.data?.Media
-    if (!media) return {}
-
-    const country = ANILIST_COUNTRY_MAP[media.countryOfOrigin] || ''
-
-    // Count sequels as additional seasons
-    const sequels = (media.relations?.edges || [])
-      .filter(e => e.relationType === 'SEQUEL' && e.node.type === 'ANIME')
-    const seasons = sequels.length + 1
-
-    return { country, seasons }
-  } catch { return {} }
-}
-
 async function searchAniList(query, category) {
   if (!query.trim()) return []
 
@@ -140,8 +84,76 @@ async function searchAniList(query, category) {
   } catch { return [] }
 }
 
+// Fetch extra details from TMDB (country + seasons)
+export async function fetchTMDBDetails(tmdbId, mediaType) {
+  if (!TMDB_TOKEN) return {}
+  try {
+    const res = await fetch(
+      `https://api.themoviedb.org/3/${mediaType}/${tmdbId}?language=en-US`,
+      { headers: { Authorization: `Bearer ${TMDB_TOKEN}`, 'Content-Type': 'application/json' } }
+    )
+    const data = await res.json()
+    const countryCode = (data.origin_country?.[0]) ||
+      (data.production_countries?.[0]?.iso_3166_1) || ''
+    const country = TMDB_COUNTRY_MAP[countryCode] || ''
+    const seasons = data.number_of_seasons || null
+    return { country, seasons }
+  } catch { return {} }
+}
+
+// Fetch anime seasons + country from AniList using relations
+export async function fetchAniListDetails(anilistId) {
+  try {
+    const gql = `
+      query ($id: Int) {
+        Media(id: $id, type: ANIME) {
+          countryOfOrigin
+          relations {
+            edges {
+              relationType
+              node {
+                id
+                type
+              }
+            }
+          }
+        }
+      }
+    `
+    const res = await fetch('https://graphql.anilist.co', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ query: gql, variables: { id: anilistId } }),
+    })
+    const data = await res.json()
+    const media = data?.data?.Media
+    if (!media) return {}
+
+    const country = ANILIST_COUNTRY_MAP[media.countryOfOrigin] || ''
+    const sequels = (media.relations?.edges || [])
+      .filter(e => e.relationType === 'SEQUEL' && e.node.type === 'ANIME')
+    const seasons = sequels.length + 1
+
+    return { country, seasons }
+  } catch { return {} }
+}
+
 export async function searchPosters(query, category) {
   if (!query || query.trim().length < 2) return []
-  if (['movie', 'series'].includes(category)) return searchTMDB(query, category)
+
+  if (['movie', 'series'].includes(category)) {
+    return searchTMDB(query, category)
+  }
+
+  if (category === 'animation') {
+    // Search both TMDB and AniList for animation, combine results
+    const [tmdbResults, anilistResults] = await Promise.all([
+      searchTMDB(query, 'series'),
+      searchAniList(query, 'animation'),
+    ])
+    // Interleave results: 3 from TMDB, 3 from AniList
+    return [...tmdbResults.slice(0, 3), ...anilistResults.slice(0, 3)]
+  }
+
   return searchAniList(query, category)
 }
