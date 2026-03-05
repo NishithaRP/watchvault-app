@@ -76,7 +76,7 @@ async function searchAniList(query, category) {
       .map(m => ({
         id: `anilist-${m.id}`,
         anilistId: m.id,
-        format: m.format, // MOVIE, TV, OVA, etc.
+        format: m.format,
         title: m.title.english || m.title.romaji || m.title.native,
         poster: m.coverImage.large,
         year: m.startDate?.year ? String(m.startDate.year) : '',
@@ -86,7 +86,7 @@ async function searchAniList(query, category) {
   } catch { return [] }
 }
 
-// Fetch extra details from TMDB (country + seasons)
+// Fetch extra details from TMDB (country + seasons) — works for both movies and TV
 export async function fetchTMDBDetails(tmdbId, mediaType) {
   if (!TMDB_TOKEN) return {}
   try {
@@ -95,10 +95,16 @@ export async function fetchTMDBDetails(tmdbId, mediaType) {
       { headers: { Authorization: `Bearer ${TMDB_TOKEN}`, 'Content-Type': 'application/json' } }
     )
     const data = await res.json()
-    const countryCode = (data.origin_country?.[0]) ||
-      (data.production_countries?.[0]?.iso_3166_1) || ''
+
+    // Try all possible country fields
+    const countryCode =
+      data.origin_country?.[0] ||
+      data.production_countries?.[0]?.iso_3166_1 ||
+      ''
+
     const country = TMDB_COUNTRY_MAP[countryCode] || ''
-    const seasons = data.number_of_seasons || null
+    const seasons = mediaType === 'tv' ? (data.number_of_seasons || null) : null
+
     return { country, seasons }
   } catch { return {} }
 }
@@ -106,7 +112,6 @@ export async function fetchTMDBDetails(tmdbId, mediaType) {
 // Fetch anime seasons + country from AniList
 export async function fetchAniListDetails(anilistId, format) {
   try {
-    // If it's a movie format, don't count seasons
     const isMovie = ['MOVIE', 'OVA', 'ONA', 'SPECIAL', 'MUSIC'].includes(format)
 
     const gql = `
@@ -138,12 +143,10 @@ export async function fetchAniListDetails(anilistId, format) {
 
     const country = ANILIST_COUNTRY_MAP[media.countryOfOrigin] || ''
 
-    // Don't assign seasons for movies
     if (isMovie || media.format === 'MOVIE') {
       return { country, seasons: null }
     }
 
-    // Count TV sequels as seasons
     const sequels = (media.relations?.edges || [])
       .filter(e => e.relationType === 'SEQUEL' && e.node.type === 'ANIME' && e.node.format === 'TV')
     const seasons = sequels.length + 1
@@ -160,7 +163,6 @@ export async function searchPosters(query, category) {
   }
 
   if (category === 'animation') {
-    // Search both TMDB and AniList for animation, combine results
     const [tmdbResults, anilistResults] = await Promise.all([
       searchTMDB(query, 'series'),
       searchAniList(query, 'animation'),

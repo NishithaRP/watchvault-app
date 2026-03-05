@@ -86,14 +86,14 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
 
     setLoadingDetails(true)
 
-    if (result.source === 'TMDB' && result.tmdbId && result.mediaType === 'tv') {
+    // Fetch from TMDB for both movies and TV series
+    if (result.source === 'TMDB' && result.tmdbId) {
       const details = await fetchTMDBDetails(result.tmdbId, result.mediaType)
       if (details.country) set('country', details.country)
       if (details.seasons) set('seasons', String(details.seasons))
     }
 
     if (result.source === 'AniList' && result.anilistId) {
-      // Pass format so movies don't get seasons assigned
       const details = await fetchAniListDetails(result.anilistId, result.format)
       if (details.country) set('country', details.country)
       if (details.seasons) set('seasons', String(details.seasons))
