@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import { X, Search, Check, Loader } from 'lucide-react'
-import { searchPosters, fetchTMDBDetails } from './posterSearch'
+import { searchPosters, fetchTMDBDetails, fetchAniListDetails } from './posterSearch'
 
 const CATEGORIES = [
   { value: 'movie',     label: '🎼 Movie' },
@@ -58,7 +58,6 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
   const needsSeasons = HAS_SEASONS.includes(form.category) &&
     (!isSeries || form.subcategory === 'series')
 
-  // Auto-search when name or category changes
   useEffect(() => {
     if (!form.name.trim() || form.name.length < 2) {
       setSearchResults([])
@@ -82,19 +81,25 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
     set('name', result.title)
     setShowResults(false)
 
-    // Auto-fill country from AniList results
-    if (result.country) {
-      set('country', result.country)
-    }
+    // Auto-fill country if already available
+    if (result.country) set('country', result.country)
 
-    // Auto-fill country + seasons from TMDB for TV series
-    if (result.source === 'TMDB' && result.tmdbId) {
-      setLoadingDetails(true)
+    // Fetch extra details based on source
+    setLoadingDetails(true)
+
+    if (result.source === 'TMDB' && result.tmdbId && result.mediaType === 'tv') {
       const details = await fetchTMDBDetails(result.tmdbId, result.mediaType)
       if (details.country) set('country', details.country)
       if (details.seasons) set('seasons', String(details.seasons))
-      setLoadingDetails(false)
     }
+
+    if (result.source === 'AniList' && result.anilistId) {
+      const details = await fetchAniListDetails(result.anilistId)
+      if (details.country) set('country', details.country)
+      if (details.seasons) set('seasons', String(details.seasons))
+    }
+
+    setLoadingDetails(false)
   }
 
   const handleClearPoster = () => {

@@ -53,6 +53,45 @@ export async function fetchTMDBDetails(tmdbId, mediaType) {
   } catch { return {} }
 }
 
+// Fetch anime seasons + country from AniList using relations
+export async function fetchAniListDetails(anilistId) {
+  try {
+    const gql = `
+      query ($id: Int) {
+        Media(id: $id, type: ANIME) {
+          countryOfOrigin
+          relations {
+            edges {
+              relationType
+              node {
+                id
+                type
+              }
+            }
+          }
+        }
+      }
+    `
+    const res = await fetch('https://graphql.anilist.co', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ query: gql, variables: { id: anilistId } }),
+    })
+    const data = await res.json()
+    const media = data?.data?.Media
+    if (!media) return {}
+
+    const country = ANILIST_COUNTRY_MAP[media.countryOfOrigin] || ''
+
+    // Count sequels as additional seasons
+    const sequels = (media.relations?.edges || [])
+      .filter(e => e.relationType === 'SEQUEL' && e.node.type === 'ANIME')
+    const seasons = sequels.length + 1
+
+    return { country, seasons }
+  } catch { return {} }
+}
+
 async function searchAniList(query, category) {
   if (!query.trim()) return []
 
@@ -75,7 +114,6 @@ async function searchAniList(query, category) {
           coverImage { large }
           startDate { year }
           countryOfOrigin
-          episodes
         }
       }
     }
@@ -92,6 +130,7 @@ async function searchAniList(query, category) {
       .filter(m => m.coverImage?.large)
       .map(m => ({
         id: `anilist-${m.id}`,
+        anilistId: m.id,
         title: m.title.english || m.title.romaji || m.title.native,
         poster: m.coverImage.large,
         year: m.startDate?.year ? String(m.startDate.year) : '',
