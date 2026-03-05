@@ -5,6 +5,14 @@ const TMDB_COUNTRY_MAP = {
   FR: 'France', DE: 'Germany', ES: 'Spain', IT: 'Italy', IN: 'India',
   AU: 'Australia', CA: 'Canada', BR: 'Brazil', MX: 'Mexico',
   TH: 'Thailand', PH: 'Philippines', TW: 'Taiwan', HK: 'Hong Kong',
+  PL: 'Poland', RU: 'Russia', TR: 'Turkey', SE: 'Sweden', NO: 'Norway',
+  DK: 'Denmark', FI: 'Finland', NL: 'Netherlands', BE: 'Belgium',
+  PT: 'Portugal', AR: 'Argentina', CL: 'Chile', CO: 'Colombia',
+  ID: 'Indonesia', MY: 'Malaysia', SG: 'Singapore', VN: 'Vietnam',
+  ZA: 'South Africa', EG: 'Egypt', NG: 'Nigeria', IL: 'Israel',
+  SA: 'Saudi Arabia', AE: 'UAE', IR: 'Iran', PK: 'Pakistan',
+  CZ: 'Czech Republic', HU: 'Hungary', RO: 'Romania', UA: 'Ukraine',
+  AT: 'Austria', CH: 'Switzerland', NZ: 'New Zealand', GR: 'Greece',
 }
 
 const ANILIST_COUNTRY_MAP = {
@@ -96,7 +104,6 @@ export async function fetchTMDBDetails(tmdbId, mediaType) {
     )
     const data = await res.json()
 
-    // Try all possible country fields
     const countryCode =
       data.origin_country?.[0] ||
       data.production_countries?.[0]?.iso_3166_1 ||

@@ -15,7 +15,13 @@ const CATEGORIES = [
 const COUNTRIES = [
   'Japan', 'South Korea', 'USA', 'UK', 'China', 'France', 'Germany',
   'Spain', 'Italy', 'India', 'Australia', 'Canada', 'Brazil', 'Mexico',
-  'Thailand', 'Philippines', 'Taiwan', 'Hong Kong', 'Other'
+  'Thailand', 'Philippines', 'Taiwan', 'Hong Kong', 'Poland', 'Russia',
+  'Turkey', 'Sweden', 'Norway', 'Denmark', 'Finland', 'Netherlands',
+  'Belgium', 'Portugal', 'Argentina', 'Chile', 'Colombia', 'Indonesia',
+  'Malaysia', 'Singapore', 'Vietnam', 'South Africa', 'Egypt', 'Nigeria',
+  'Israel', 'Saudi Arabia', 'UAE', 'Iran', 'Pakistan', 'Czech Republic',
+  'Hungary', 'Romania', 'Ukraine', 'Austria', 'Switzerland', 'New Zealand',
+  'Greece', 'Other'
 ]
 
 const HAS_SUBCATEGORY = ['anime', 'animation', 'donghua']
@@ -60,7 +66,6 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
     (!isSeries || form.subcategory === 'series')
 
   useEffect(() => {
-    // Don't search if poster was just selected
     if (posterJustSelected.current) {
       posterJustSelected.current = false
       return
@@ -72,7 +77,6 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
       return
     }
 
-    // Don't search if a poster is already selected
     if (selectedPoster) return
 
     clearTimeout(searchTimer.current)
@@ -95,12 +99,10 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
     setShowResults(false)
     setSearchResults([])
 
-    // Auto-fill country if already available
     if (result.country) set('country', result.country)
 
     setLoadingDetails(true)
 
-    // Fetch from TMDB for both movies and TV series
     if (result.source === 'TMDB' && result.tmdbId) {
       const details = await fetchTMDBDetails(result.tmdbId, result.mediaType)
       if (details.country) set('country', details.country)
@@ -202,7 +204,6 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
                   </div>
                 </div>
 
-                {/* Results dropdown */}
                 {showResults && (
                   <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 500, background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: '10px', marginTop: '6px', padding: '10px', boxShadow: '0 8px 32px rgba(0,0,0,0.4)', maxHeight: '220px', overflowY: 'auto' }}>
                     <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
