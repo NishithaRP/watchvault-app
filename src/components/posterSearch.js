@@ -54,6 +54,7 @@ async function searchAniList(query, category) {
       Page(page: 1, perPage: 6) {
         media(search: $search, type: ${config.type}${countryFilter}, sort: SEARCH_MATCH) {
           id
+          format
           title { english romaji native }
           coverImage { large }
           startDate { year }
@@ -75,6 +76,7 @@ async function searchAniList(query, category) {
       .map(m => ({
         id: `anilist-${m.id}`,
         anilistId: m.id,
+        format: m.format, // MOVIE, TV, OVA, etc.
         title: m.title.english || m.title.romaji || m.title.native,
         poster: m.coverImage.large,
         year: m.startDate?.year ? String(m.startDate.year) : '',
@@ -101,19 +103,24 @@ export async function fetchTMDBDetails(tmdbId, mediaType) {
   } catch { return {} }
 }
 
-// Fetch anime seasons + country from AniList using relations
-export async function fetchAniListDetails(anilistId) {
+// Fetch anime seasons + country from AniList
+export async function fetchAniListDetails(anilistId, format) {
   try {
+    // If it's a movie format, don't count seasons
+    const isMovie = ['MOVIE', 'OVA', 'ONA', 'SPECIAL', 'MUSIC'].includes(format)
+
     const gql = `
       query ($id: Int) {
         Media(id: $id, type: ANIME) {
           countryOfOrigin
+          format
           relations {
             edges {
               relationType
               node {
                 id
                 type
+                format
               }
             }
           }
@@ -130,8 +137,15 @@ export async function fetchAniListDetails(anilistId) {
     if (!media) return {}
 
     const country = ANILIST_COUNTRY_MAP[media.countryOfOrigin] || ''
+
+    // Don't assign seasons for movies
+    if (isMovie || media.format === 'MOVIE') {
+      return { country, seasons: null }
+    }
+
+    // Count TV sequels as seasons
     const sequels = (media.relations?.edges || [])
-      .filter(e => e.relationType === 'SEQUEL' && e.node.type === 'ANIME')
+      .filter(e => e.relationType === 'SEQUEL' && e.node.type === 'ANIME' && e.node.format === 'TV')
     const seasons = sequels.length + 1
 
     return { country, seasons }
@@ -151,7 +165,6 @@ export async function searchPosters(query, category) {
       searchTMDB(query, 'series'),
       searchAniList(query, 'animation'),
     ])
-    // Interleave results: 3 from TMDB, 3 from AniList
     return [...tmdbResults.slice(0, 3), ...anilistResults.slice(0, 3)]
   }
 

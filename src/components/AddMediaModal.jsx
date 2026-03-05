@@ -30,7 +30,7 @@ const CATEGORY_SEARCH_HINT = {
   movie:     'Searches TMDB — best movie database',
   series:    'Searches TMDB — best TV series database',
   anime:     'Searches AniList — free, no key needed',
-  animation: 'Searches AniList animation',
+  animation: 'Searches TMDB + AniList',
   donghua:   'Searches AniList — Chinese anime',
   manhwa:    'Searches AniList — Korean manhwa',
 }
@@ -84,7 +84,6 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
     // Auto-fill country if already available
     if (result.country) set('country', result.country)
 
-    // Fetch extra details based on source
     setLoadingDetails(true)
 
     if (result.source === 'TMDB' && result.tmdbId && result.mediaType === 'tv') {
@@ -94,7 +93,8 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
     }
 
     if (result.source === 'AniList' && result.anilistId) {
-      const details = await fetchAniListDetails(result.anilistId)
+      // Pass format so movies don't get seasons assigned
+      const details = await fetchAniListDetails(result.anilistId, result.format)
       if (details.country) set('country', details.country)
       if (details.seasons) set('seasons', String(details.seasons))
     }
