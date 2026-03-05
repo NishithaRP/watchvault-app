@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
-import { X, Search, Check, Loader } from 'lucide-react'
+import { X, Search, Check, Loader, AlertTriangle } from 'lucide-react'
 import { searchPosters, fetchTMDBDetails, fetchAniListDetails } from './posterSearch'
 
 const CATEGORIES = [
-  { value: 'movie',     label: '🎼 Movie' },
+  { value: 'movie',     label: '🎬 Movie' },
   { value: 'series',    label: '📺 TV Series' },
   { value: 'anime',     label: '✨ Anime' },
   { value: 'animation', label: '🎨 Animation' },
@@ -56,7 +56,13 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
   const [selectedPoster, setSelectedPoster] = useState(null)
   const [showResults, setShowResults] = useState(false)
   const [loadingDetails, setLoadingDetails] = useState(false)
+
+  // Duplicate detection
+  const [duplicate, setDuplicate] = useState(null)
+  const [showDuplicateConfirm, setShowDuplicateConfirm] = useState(false)
+
   const searchTimer = useRef(null)
+  const duplicateTimer = useRef(null)
   const posterJustSelected = useRef(false)
 
   const set = (key, val) => setForm(f => ({ ...f, [key]: val }))
@@ -65,18 +71,36 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
   const needsSeasons = HAS_SEASONS.includes(form.category) &&
     (!isSeries || form.subcategory === 'series')
 
+  // Check for duplicates when name changes
+  useEffect(() => {
+    if (!form.name.trim() || form.name.length < 2) {
+      setDuplicate(null)
+      return
+    }
+    clearTimeout(duplicateTimer.current)
+    duplicateTimer.current = setTimeout(async () => {
+      const { data } = await supabase
+        .from('media')
+        .select('id, name, category')
+        .eq('user_id', userId)
+        .ilike('name', form.name.trim())
+        .limit(1)
+      setDuplicate(data?.length > 0 ? data[0] : null)
+    }, 800)
+    return () => clearTimeout(duplicateTimer.current)
+  }, [form.name])
+
+  // Poster search
   useEffect(() => {
     if (posterJustSelected.current) {
       posterJustSelected.current = false
       return
     }
-
     if (!form.name.trim() || form.name.length < 2) {
       setSearchResults([])
       setShowResults(false)
       return
     }
-
     if (selectedPoster) return
 
     clearTimeout(searchTimer.current)
@@ -125,7 +149,19 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
 
   const handleSave = async () => {
     if (!form.name.trim()) { setError('Name is required'); return }
+
+    // Check for duplicate before saving
+    if (duplicate && !showDuplicateConfirm) {
+      setShowDuplicateConfirm(true)
+      return
+    }
+
+    await doSave()
+  }
+
+  const doSave = async () => {
     setSaving(true); setError('')
+    setShowDuplicateConfirm(false)
     const payload = {
       user_id: userId,
       name: form.name.trim(),
@@ -180,7 +216,7 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
                   {['series', 'movie'].map(sub => (
                     <button key={sub} onClick={() => set('subcategory', sub)}
                       style={{ flex: 1, padding: '8px', borderRadius: '8px', border: '1px solid', borderColor: form.subcategory === sub ? 'var(--accent)' : 'var(--border)', background: form.subcategory === sub ? 'var(--accent-dim)' : 'var(--bg-secondary)', color: form.subcategory === sub ? 'var(--accent)' : 'var(--text-secondary)', cursor: 'pointer', fontSize: '13px', fontWeight: 600, fontFamily: 'var(--font-body)', transition: 'all 0.15s' }}>
-                      {sub === 'series' ? '📺 Series' : '🎼 Movie'}
+                      {sub === 'series' ? '📺 Series' : '🎬 Movie'}
                     </button>
                   ))}
                 </div>
@@ -195,8 +231,8 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
                   <input className="input"
                     placeholder={`Search ${form.category} title...`}
                     value={form.name}
-                    onChange={e => { set('name', e.target.value); if (selectedPoster && e.target.value !== selectedPoster.title) { setSelectedPoster(null); set('image_url', '') } }}
-                    style={{ paddingRight: '36px' }} />
+                    onChange={e => { set('name', e.target.value); setDuplicate(null); setShowDuplicateConfirm(false); if (selectedPoster && e.target.value !== selectedPoster.title) { setSelectedPoster(null); set('image_url', '') } }}
+                    style={{ paddingRight: '36px', borderColor: duplicate ? 'orange' : undefined }} />
                   <div style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}>
                     {searching
                       ? <Loader size={15} style={{ animation: 'spin 1s linear infinite' }} />
@@ -204,6 +240,17 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
                   </div>
                 </div>
 
+                {/* Duplicate warning */}
+                {duplicate && !showDuplicateConfirm && (
+                  <div style={{ marginTop: '6px', padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,165,0,0.1)', border: '1px solid rgba(255,165,0,0.4)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <AlertTriangle size={14} color="orange" />
+                    <span style={{ fontSize: '12px', color: 'orange' }}>
+                      "{duplicate.name}" already exists in your {duplicate.category} list!
+                    </span>
+                  </div>
+                )}
+
+                {/* Results dropdown */}
                 {showResults && (
                   <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 500, background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: '10px', marginTop: '6px', padding: '10px', boxShadow: '0 8px 32px rgba(0,0,0,0.4)', maxHeight: '220px', overflowY: 'auto' }}>
                     <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
@@ -238,6 +285,29 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
                 )}
               </div>
             </div>
+
+            {/* Duplicate confirmation dialog */}
+            {showDuplicateConfirm && (
+              <div style={{ padding: '14px', borderRadius: '10px', background: 'rgba(255,165,0,0.1)', border: '1px solid rgba(255,165,0,0.4)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                  <AlertTriangle size={16} color="orange" />
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: 'orange' }}>Duplicate Detected!</span>
+                </div>
+                <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '12px' }}>
+                  "{duplicate.name}" already exists in your {duplicate.category} list. Are you sure you want to add it again?
+                </p>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button onClick={doSave}
+                    style={{ flex: 1, padding: '8px', borderRadius: '8px', background: 'orange', border: 'none', color: 'white', fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+                    Yes, add anyway
+                  </button>
+                  <button onClick={() => setShowDuplicateConfirm(false)}
+                    style={{ flex: 1, padding: '8px', borderRadius: '8px', background: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Selected poster preview */}
             {selectedPoster ? (
@@ -331,12 +401,14 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
               <div style={{ padding: '10px 14px', borderRadius: '8px', background: 'rgba(230,57,70,0.1)', border: '1px solid rgba(230,57,70,0.3)', color: 'var(--accent)', fontSize: '13px' }}>{error}</div>
             )}
 
-            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', paddingTop: '4px' }}>
-              <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
-              <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
-                {saving ? 'Saving...' : '+ Add to Vault'}
-              </button>
-            </div>
+            {!showDuplicateConfirm && (
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', paddingTop: '4px' }}>
+                <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
+                <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
+                  {saving ? 'Saving...' : '+ Add to Vault'}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
