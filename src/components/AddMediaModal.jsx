@@ -28,8 +28,9 @@ const HAS_SUBCATEGORY = ['anime', 'animation', 'donghua']
 const HAS_SEASONS = ['series', 'anime', 'animation', 'donghua']
 
 const SOURCE_LABELS = {
-  TMDB: { label: 'TMDB', color: '#01b4e4' },
-  AniList: { label: 'AniList', color: '#02a9ff' },
+  TMDB:      { label: 'TMDB',      color: '#01b4e4' },
+  AniList:   { label: 'AniList',   color: '#02a9ff' },
+  MangaDex:  { label: 'MangaDex',  color: '#ff6740' },
 }
 
 const CATEGORY_SEARCH_HINT = {
@@ -38,7 +39,7 @@ const CATEGORY_SEARCH_HINT = {
   anime:     'Searches AniList — free, no key needed',
   animation: 'Searches TMDB + AniList',
   donghua:   'Searches AniList — Chinese anime',
-  manhwa:    'Searches AniList — Korean manhwa',
+  manhwa:    'Searches AniList + MangaDex — Korean manhwa',
 }
 
 export default function AddMediaModal({ onClose, onSaved, userId, initialCategory }) {
@@ -57,7 +58,6 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
   const [showResults, setShowResults] = useState(false)
   const [loadingDetails, setLoadingDetails] = useState(false)
 
-  // Duplicate detection
   const [duplicate, setDuplicate] = useState(null)
   const [showDuplicateConfirm, setShowDuplicateConfirm] = useState(false)
 
@@ -71,7 +71,6 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
   const needsSeasons = HAS_SEASONS.includes(form.category) &&
     (!isSeries || form.subcategory === 'series')
 
-  // Check for duplicates when name changes
   useEffect(() => {
     if (!form.name.trim() || form.name.length < 2) {
       setDuplicate(null)
@@ -90,7 +89,6 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
     return () => clearTimeout(duplicateTimer.current)
   }, [form.name])
 
-  // Poster search
   useEffect(() => {
     if (posterJustSelected.current) {
       posterJustSelected.current = false
@@ -139,6 +137,7 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
       if (details.seasons) set('seasons', String(details.seasons))
     }
 
+    // MangaDex results already have country set to South Korea
     setLoadingDetails(false)
   }
 
@@ -149,13 +148,10 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
 
   const handleSave = async () => {
     if (!form.name.trim()) { setError('Name is required'); return }
-
-    // Check for duplicate before saving
     if (duplicate && !showDuplicateConfirm) {
       setShowDuplicateConfirm(true)
       return
     }
-
     await doSave()
   }
 
@@ -286,7 +282,7 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
               </div>
             </div>
 
-            {/* Duplicate confirmation dialog */}
+            {/* Duplicate confirmation */}
             {showDuplicateConfirm && (
               <div style={{ padding: '14px', borderRadius: '10px', background: 'rgba(255,165,0,0.1)', border: '1px solid rgba(255,165,0,0.4)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>

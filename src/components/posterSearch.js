@@ -44,6 +44,50 @@ async function searchTMDB(query, category) {
   } catch { return [] }
 }
 
+// MangaDex search — great English title coverage for manhwa
+async function searchMangaDex(query) {
+  if (!query.trim()) return []
+  try {
+    const res = await fetch(
+      `https://api.mangadex.org/manga?title=${encodeURIComponent(query)}&limit=6&availableTranslatedLanguage[]=en&publicationDemographic[]=josei&publicationDemographic[]=shoujo&publicationDemographic[]=shounen&publicationDemographic[]=seinen&includes[]=cover_art&order[relevance]=desc`,
+    )
+    const data = await res.json()
+
+    // Also do a broader search without demographic filter
+    const res2 = await fetch(
+      `https://api.mangadex.org/manga?title=${encodeURIComponent(query)}&limit=6&includes[]=cover_art&order[relevance]=desc&originalLanguage[]=ko`,
+    )
+    const data2 = await res2.json()
+
+    const all = [...(data.data || []), ...(data2.data || [])]
+    const seen = new Set()
+
+    return all
+      .filter(m => {
+        if (seen.has(m.id)) return false
+        seen.add(m.id)
+        const cover = m.relationships?.find(r => r.type === 'cover_art')
+        return cover?.attributes?.fileName
+      })
+      .slice(0, 6)
+      .map(m => {
+        const cover = m.relationships.find(r => r.type === 'cover_art')
+        const fileName = cover.attributes.fileName
+        const title = m.attributes.title?.en ||
+          Object.values(m.attributes.title || {})[0] || 'Unknown'
+        const year = m.attributes.year ? String(m.attributes.year) : ''
+        return {
+          id: `mangadex-${m.id}`,
+          title,
+          poster: `https://uploads.mangadex.org/covers/${m.id}/${fileName}.256.jpg`,
+          year,
+          country: 'South Korea',
+          source: 'MangaDex',
+        }
+      })
+  } catch { return [] }
+}
+
 // Single AniList search query
 async function aniListQuery(query, type, countryOfOrigin) {
   const countryFilter = countryOfOrigin ? `, countryOfOrigin: "${countryOfOrigin}"` : ''
@@ -83,14 +127,11 @@ async function searchAniList(query, category) {
   const config = formatMap[category] || { type: 'ANIME' }
 
   try {
-    // Run two searches in parallel: one with the user query, one without country filter for broader results
     const [primary, secondary] = await Promise.all([
       aniListQuery(query, config.type, config.countryOfOrigin),
-      // Secondary search without country filter to catch titles with different names
       config.countryOfOrigin ? aniListQuery(query, config.type, null) : Promise.resolve([]),
     ])
 
-    // Merge and deduplicate by id
     const seen = new Set()
     const merged = [...primary, ...secondary].filter(m => {
       if (seen.has(m.id)) return false
@@ -98,7 +139,6 @@ async function searchAniList(query, category) {
       return m.coverImage?.large
     })
 
-    // For manhwa: prioritize Korean entries but include others if they match
     const filtered = category === 'manhwa'
       ? merged.filter(m => m.countryOfOrigin === 'KR' || !m.countryOfOrigin)
       : merged
@@ -109,7 +149,6 @@ async function searchAniList(query, category) {
         id: `anilist-${m.id}`,
         anilistId: m.id,
         format: m.format,
-        // Show best available title — prefer English, fallback to romaji, then native
         title: m.title.english || m.title.romaji || m.title.native,
         poster: m.coverImage.large,
         year: m.startDate?.year ? String(m.startDate.year) : '',
@@ -185,6 +224,26 @@ export async function searchPosters(query, category) {
       searchAniList(query, 'animation'),
     ])
     return [...tmdbResults.slice(0, 3), ...anilistResults.slice(0, 3)]
+  }
+
+  if (category === 'manhwa') {
+    // Search AniList and MangaDex in parallel
+    const [anilistResults, mangadexResults] = await Promise.all([
+      searchAniList(query, 'manhwa'),
+      searchMangaDex(query),
+    ])
+
+    // Merge: AniList first, then MangaDex to fill remaining slots
+    const seen = new Set()
+    const merged = []
+    for (const r of [...anilistResults, ...mangadexResults]) {
+      if (merged.length >= 6) break
+      if (!seen.has(r.title)) {
+        seen.add(r.title)
+        merged.push(r)
+      }
+    }
+    return merged
   }
 
   return searchAniList(query, category)
