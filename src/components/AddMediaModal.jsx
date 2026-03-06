@@ -30,7 +30,7 @@ const HAS_SEASONS = ['series', 'anime', 'animation', 'donghua']
 const SOURCE_LABELS = {
   TMDB:      { label: 'TMDB',      color: '#01b4e4' },
   AniList:   { label: 'AniList',   color: '#02a9ff' },
-  MangaDex:  { label: 'MangaDex',  color: '#ff6740' },
+  MyAnimeList: { label: 'MAL', color: '#2e51a2' },
 }
 
 const CATEGORY_SEARCH_HINT = {
@@ -39,7 +39,7 @@ const CATEGORY_SEARCH_HINT = {
   anime:     'Searches AniList — free, no key needed',
   animation: 'Searches TMDB + AniList',
   donghua:   'Searches AniList — Chinese anime',
-  manhwa:    'Searches AniList + MangaDex — Korean manhwa',
+  manhwa:    'Searches AniList + MyAnimeList — Korean manhwa',
 }
 
 export default function AddMediaModal({ onClose, onSaved, userId, initialCategory }) {
@@ -137,7 +137,7 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
       if (details.seasons) set('seasons', String(details.seasons))
     }
 
-    // MangaDex results already have country set to South Korea
+    // MyAnimeList results already have country auto-detected from type
     setLoadingDetails(false)
   }
 
