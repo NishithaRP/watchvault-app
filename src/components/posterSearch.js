@@ -19,6 +19,10 @@ const ANILIST_COUNTRY_MAP = {
   JP: 'Japan', KR: 'South Korea', CN: 'China', TW: 'Taiwan',
 }
 
+const MANGADEX_COUNTRY_MAP = {
+  ko: 'South Korea', zh: 'China', ja: 'Japan', en: 'USA',
+}
+
 async function searchTMDB(query, category) {
   if (!TMDB_TOKEN || !query.trim()) return []
   try {
@@ -44,25 +48,17 @@ async function searchTMDB(query, category) {
   } catch { return [] }
 }
 
-// MangaDex search — great English title coverage for manhwa
+// MangaDex — broad search, no language filter so it catches Chinese manhua too
 async function searchMangaDex(query) {
   if (!query.trim()) return []
   try {
     const res = await fetch(
-      `https://api.mangadex.org/manga?title=${encodeURIComponent(query)}&limit=6&availableTranslatedLanguage[]=en&publicationDemographic[]=josei&publicationDemographic[]=shoujo&publicationDemographic[]=shounen&publicationDemographic[]=seinen&includes[]=cover_art&order[relevance]=desc`,
+      `https://api.mangadex.org/manga?title=${encodeURIComponent(query)}&limit=8&includes[]=cover_art&order[relevance]=desc&availableTranslatedLanguage[]=en`
     )
     const data = await res.json()
-
-    // Also do a broader search without demographic filter
-    const res2 = await fetch(
-      `https://api.mangadex.org/manga?title=${encodeURIComponent(query)}&limit=6&includes[]=cover_art&order[relevance]=desc&originalLanguage[]=ko`,
-    )
-    const data2 = await res2.json()
-
-    const all = [...(data.data || []), ...(data2.data || [])]
     const seen = new Set()
 
-    return all
+    return (data.data || [])
       .filter(m => {
         if (seen.has(m.id)) return false
         seen.add(m.id)
@@ -76,12 +72,14 @@ async function searchMangaDex(query) {
         const title = m.attributes.title?.en ||
           Object.values(m.attributes.title || {})[0] || 'Unknown'
         const year = m.attributes.year ? String(m.attributes.year) : ''
+        const lang = m.attributes.originalLanguage || ''
+        const country = MANGADEX_COUNTRY_MAP[lang] || ''
         return {
           id: `mangadex-${m.id}`,
           title,
           poster: `https://uploads.mangadex.org/covers/${m.id}/${fileName}.256.jpg`,
           year,
-          country: 'South Korea',
+          country,
           source: 'MangaDex',
         }
       })
@@ -233,13 +231,14 @@ export async function searchPosters(query, category) {
       searchMangaDex(query),
     ])
 
-    // Merge: AniList first, then MangaDex to fill remaining slots
+    // Merge, deduplicate by title, AniList first then MangaDex
     const seen = new Set()
     const merged = []
     for (const r of [...anilistResults, ...mangadexResults]) {
       if (merged.length >= 6) break
-      if (!seen.has(r.title)) {
-        seen.add(r.title)
+      const key = r.title?.toLowerCase().trim()
+      if (key && !seen.has(key)) {
+        seen.add(key)
         merged.push(r)
       }
     }
