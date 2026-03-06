@@ -18,22 +18,6 @@ const STATUS_CONFIG = {
   dropped:       { label: 'Dropped',        color: '#e63946' },
 }
 
-function Bar({ value, max, color, height = 120 }) {
-  const pct = max > 0 ? (value / max) * 100 : 0
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', flex: 1 }}>
-      <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)' }}>{value}</span>
-      <div style={{ width: '100%', height: `${height}px`, background: 'var(--bg-secondary)', borderRadius: '6px', overflow: 'hidden', display: 'flex', alignItems: 'flex-end' }}>
-        <div style={{
-          width: '100%', height: `${pct}%`, background: color,
-          borderRadius: '6px', transition: 'height 0.8s cubic-bezier(0.34,1.56,0.64,1)',
-          minHeight: value > 0 ? '4px' : '0'
-        }} />
-      </div>
-    </div>
-  )
-}
-
 function DonutChart({ data, size = 140 }) {
   const total = data.reduce((s, d) => s + d.value, 0)
   if (total === 0) return <div style={{ width: size, height: size, borderRadius: '50%', background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '12px' }}>No data</div>
@@ -108,27 +92,29 @@ export default function StatsPage({ userId }) {
   const dropped = data.filter(d => d.status === 'dropped').length
   const rated = data.filter(d => d.rating)
   const avgRating = rated.length ? (rated.reduce((s, d) => s + d.rating, 0) / rated.length).toFixed(1) : 'N/A'
-  const topRated = [...data].filter(d => d.rating).sort((a, b) => b.rating - a.rating).slice(0, 5)
+
+  // Fixed: alphabetical tie-breaking for top rated
+  const topRated = [...data]
+    .filter(d => d.rating)
+    .sort((a, b) => b.rating - a.rating || a.name.localeCompare(b.name))
+    .slice(0, 5)
+
   const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0
 
-  // By category counts
   const byCat = Object.keys(CATEGORY_CONFIG).map(k => ({
     key: k, ...CATEGORY_CONFIG[k], value: data.filter(d => d.category === k).length
   }))
   const maxCat = Math.max(...byCat.map(c => c.value), 1)
 
-  // By status for donut
   const byStatus = Object.entries(STATUS_CONFIG).map(([k, v]) => ({
     ...v, value: data.filter(d => d.status === k).length
   }))
 
-  // Top countries
   const countryCounts = {}
   data.forEach(d => { if (d.country) countryCounts[d.country] = (countryCounts[d.country] || 0) + 1 })
   const topCountries = Object.entries(countryCounts).sort((a, b) => b[1] - a[1]).slice(0, 6)
   const maxCountry = topCountries[0]?.[1] || 1
 
-  // Rating distribution
   const ratingDist = Array.from({ length: 10 }, (_, i) => ({
     rating: i + 1, count: data.filter(d => d.rating === i + 1).length
   }))
