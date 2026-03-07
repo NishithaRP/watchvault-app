@@ -43,12 +43,24 @@ export default function MediaList({ category, userId, onAdd, defaultStatus }) {
   // Prevent body scroll when modal is open
   useEffect(() => {
     if (editItem) {
-      document.body.style.overflow = 'hidden'
-      window.scrollTo({ top: 0, behavior: 'smooth' })
+      // Save current scroll position and lock body
+      const scrollY = window.scrollY
+      document.body.style.position = 'fixed'
+      document.body.style.top = `-${scrollY}px`
+      document.body.style.width = '100%'
     } else {
-      document.body.style.overflow = ''
+      // Restore scroll position when modal closes
+      const scrollY = document.body.style.top
+      document.body.style.position = ''
+      document.body.style.top = ''
+      document.body.style.width = ''
+      if (scrollY) window.scrollTo(0, parseInt(scrollY || '0') * -1)
     }
-    return () => { document.body.style.overflow = '' }
+    return () => {
+      document.body.style.position = ''
+      document.body.style.top = ''
+      document.body.style.width = ''
+    }
   }, [editItem])
 
   const toggleCardSize = (size) => {
