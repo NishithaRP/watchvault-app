@@ -5,7 +5,13 @@ import { X } from 'lucide-react'
 const COUNTRIES = [
   'Japan', 'South Korea', 'USA', 'UK', 'China', 'France', 'Germany',
   'Spain', 'Italy', 'India', 'Australia', 'Canada', 'Brazil', 'Mexico',
-  'Thailand', 'Philippines', 'Taiwan', 'Hong Kong', 'Other'
+  'Thailand', 'Philippines', 'Taiwan', 'Hong Kong', 'Poland', 'Russia',
+  'Turkey', 'Sweden', 'Norway', 'Denmark', 'Finland', 'Netherlands',
+  'Belgium', 'Portugal', 'Argentina', 'Chile', 'Colombia', 'Indonesia',
+  'Malaysia', 'Singapore', 'Vietnam', 'South Africa', 'Egypt', 'Nigeria',
+  'Israel', 'Saudi Arabia', 'UAE', 'Iran', 'Pakistan', 'Czech Republic',
+  'Hungary', 'Romania', 'Ukraine', 'Austria', 'Switzerland', 'New Zealand',
+  'Greece', 'Other'
 ]
 
 const HAS_SUBCATEGORY = ['anime', 'animation', 'donghua']
@@ -59,6 +65,12 @@ export default function EditMediaModal({ item, onClose, onSaved, userId }) {
   return (
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal">
+
+        {/* Drag handle for mobile bottom sheet feel */}
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 0' }}>
+          <div style={{ width: '36px', height: '4px', borderRadius: '2px', background: 'var(--border-light)' }} />
+        </div>
+
         <div className="modal-header">
           <h2 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Edit Entry</h2>
           <button className="btn btn-ghost" onClick={onClose} style={{ padding: '4px' }}>
@@ -92,7 +104,6 @@ export default function EditMediaModal({ item, onClose, onSaved, userId }) {
                         color: form.subcategory === sub ? 'var(--accent)' : 'var(--text-secondary)',
                         cursor: 'pointer', fontSize: '13px', fontWeight: 600,
                         fontFamily: 'var(--font-body)', transition: 'all 0.15s',
-                        textTransform: 'capitalize'
                       }}>
                       {sub === 'series' ? '📺 Series' : '🎬 Movie'}
                     </button>
@@ -189,7 +200,7 @@ export default function EditMediaModal({ item, onClose, onSaved, userId }) {
               }}>{error}</div>
             )}
 
-            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', paddingBottom: '8px' }}>
               <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
               <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
                 {saving ? 'Saving...' : 'Save Changes'}

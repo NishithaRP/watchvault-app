@@ -158,7 +158,8 @@ select.input option { background: var(--bg-card); color: var(--text-primary); }
   .modal {
     width: 100%;
     max-width: 100%;
-    max-height: 88vh;
+    height: 80vh;
+    max-height: 80vh;
     border-radius: 20px 20px 0 0;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
