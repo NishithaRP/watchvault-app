@@ -124,29 +124,21 @@ select.input option { background: var(--bg-card); color: var(--text-primary); }
 
 /* ── MOBILE RESPONSIVE ── */
 @media (max-width: 767px) {
-  /* Filters stack vertically */
-  .filters-bar {
-    flex-direction: column;
-  }
-
-  /* Modal as bottom sheet on mobile - fixed height and scrollable */
-  .modal {
-    max-width: 100%;
-    max-height: 85vh;
-    height: auto;
-    border-radius: 16px 16px 0 0;
-    margin-top: auto;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-  }
+  .filters-bar { flex-direction: column; }
+  .card:hover { transform: none; }
 
   .modal-overlay {
-    align-items: flex-end;
-    padding: 0;
+    align-items: flex-start;
+    padding: 16px;
+    overflow-y: auto;
   }
 
-  /* Cards grid tighter on mobile */
-  .card:hover {
-    transform: none;
+  .modal {
+    max-width: 100%;
+    max-height: none;
+    height: auto;
+    border-radius: 16px;
+    overflow-y: visible;
+    margin: 0 auto;
   }
 }
