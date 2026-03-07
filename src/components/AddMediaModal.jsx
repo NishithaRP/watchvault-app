@@ -376,7 +376,11 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
                 {[1,2,3,4,5,6,7,8,9,10].map(n => (
                   <button key={n}
                     onMouseEnter={() => setHoverRating(n)} onMouseLeave={() => setHoverRating(0)}
-                    onClick={() => set('rating', form.rating === n ? 0 : n)}
+                    onClick={() => {
+                      const newRating = form.rating === n ? 0 : n
+                      set('rating', newRating)
+                      if (newRating > 0) set('status', 'completed')
+                    }}
                     style={{ width: '34px', height: '34px', borderRadius: '6px', border: '1px solid', borderColor: (hoverRating >= n || form.rating >= n) ? 'var(--gold)' : 'var(--border)', background: (hoverRating >= n || form.rating >= n) ? 'var(--gold-dim)' : 'var(--bg-secondary)', color: (hoverRating >= n || form.rating >= n) ? 'var(--gold)' : 'var(--text-muted)', cursor: 'pointer', fontSize: '13px', fontWeight: 700, transition: 'all 0.1s', fontFamily: 'var(--font-body)' }}>
                     {n}
                   </button>
