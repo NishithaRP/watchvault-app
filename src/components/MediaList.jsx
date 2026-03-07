@@ -44,6 +44,7 @@ export default function MediaList({ category, userId, onAdd, defaultStatus }) {
   useEffect(() => {
     if (editItem) {
       document.body.style.overflow = 'hidden'
+      window.scrollTo({ top: 0, behavior: 'smooth' })
     } else {
       document.body.style.overflow = ''
     }
