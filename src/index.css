@@ -129,12 +129,15 @@ select.input option { background: var(--bg-card); color: var(--text-primary); }
     flex-direction: column;
   }
 
-  /* Modal full screen on mobile */
+  /* Modal as bottom sheet on mobile - fixed height and scrollable */
   .modal {
     max-width: 100%;
-    max-height: 95vh;
+    max-height: 85vh;
+    height: auto;
     border-radius: 16px 16px 0 0;
     margin-top: auto;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .modal-overlay {
