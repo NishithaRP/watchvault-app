@@ -30,6 +30,7 @@ export default function MediaList({ category, userId, onAdd, defaultStatus }) {
   const [countryFilter, setCountryFilter] = useState('all')
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [subcatFilter, setSubcatFilter] = useState('all')
+  const [ratingFilter, setRatingFilter] = useState('all')
   const [editItem, setEditItem] = useState(null)
   const [countries, setCountries] = useState([])
   const [cardSize, setCardSize] = useState(() => localStorage.getItem('wv-cardsize') || 'detailed')
@@ -95,7 +96,13 @@ export default function MediaList({ category, userId, onAdd, defaultStatus }) {
     const matchCountry = countryFilter === 'all' || item.country === countryFilter
     const matchCat = !isAllCategories || categoryFilter === 'all' || item.category === categoryFilter
     const matchSubcat = subcatFilter === 'all' || item.subcategory === subcatFilter
-    return matchSearch && matchStatus && matchCountry && matchCat && matchSubcat
+    const matchRating =
+      ratingFilter === 'all' ? true :
+      ratingFilter === 'unrated' ? !item.rating :
+      ratingFilter === '8-10' ? item.rating >= 8 :
+      ratingFilter === '5-7' ? item.rating >= 5 && item.rating <= 7 :
+      ratingFilter === '1-4' ? item.rating >= 1 && item.rating <= 4 : true
+    return matchSearch && matchStatus && matchCountry && matchCat && matchSubcat && matchRating
   })
 
   const gridCols = cardSize === 'compact'
@@ -140,6 +147,14 @@ export default function MediaList({ category, userId, onAdd, defaultStatus }) {
             {countries.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
         )}
+
+        <select className="input" value={ratingFilter} onChange={e => setRatingFilter(e.target.value)} style={{ width: 'auto', minWidth: '140px' }}>
+          <option value="all">All Ratings</option>
+          <option value="8-10">⭐ 8-10 Great</option>
+          <option value="5-7">⭐ 5-7 Good</option>
+          <option value="1-4">⭐ 1-4 Poor</option>
+          <option value="unrated">Unrated</option>
+        </select>
 
         {/* Card size toggle */}
         <div style={{ display: 'flex', background: 'var(--bg-secondary)', borderRadius: '8px', padding: '3px', gap: '2px', border: '1px solid var(--border)' }}>
