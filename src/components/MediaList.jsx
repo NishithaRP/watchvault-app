@@ -19,6 +19,9 @@ const CATEGORY_CONFIG = {
   manhwa:    { label: 'Manhwa',     emoji: '📖' },
 }
 
+// Detect if device is touch/mobile
+const isTouchDevice = () => window.matchMedia('(hover: none)').matches
+
 export default function MediaList({ category, userId, onAdd, defaultStatus }) {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
@@ -30,8 +33,22 @@ export default function MediaList({ category, userId, onAdd, defaultStatus }) {
   const [editItem, setEditItem] = useState(null)
   const [countries, setCountries] = useState([])
   const [cardSize, setCardSize] = useState(() => localStorage.getItem('wv-cardsize') || 'detailed')
+  const [isTouch, setIsTouch] = useState(false)
 
-  useEffect(() => { loadItems() }, [category, userId])
+  useEffect(() => {
+    setIsTouch(isTouchDevice())
+    loadItems()
+  }, [category, userId])
+
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (editItem) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => { document.body.style.overflow = '' }
+  }, [editItem])
 
   const toggleCardSize = (size) => {
     setCardSize(size)
@@ -113,30 +130,12 @@ export default function MediaList({ category, userId, onAdd, defaultStatus }) {
 
         {/* Card size toggle */}
         <div style={{ display: 'flex', background: 'var(--bg-secondary)', borderRadius: '8px', padding: '3px', gap: '2px', border: '1px solid var(--border)' }}>
-          <button
-            onClick={() => toggleCardSize('compact')}
-            title="Compact view"
-            style={{
-              padding: '6px 10px', borderRadius: '6px', border: 'none', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', gap: '5px',
-              background: cardSize === 'compact' ? 'var(--accent)' : 'transparent',
-              color: cardSize === 'compact' ? 'white' : 'var(--text-muted)',
-              fontSize: '12px', fontWeight: 600, fontFamily: 'var(--font-body)',
-              transition: 'all 0.2s'
-            }}>
+          <button onClick={() => toggleCardSize('compact')} title="Compact view"
+            style={{ padding: '6px 10px', borderRadius: '6px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', background: cardSize === 'compact' ? 'var(--accent)' : 'transparent', color: cardSize === 'compact' ? 'white' : 'var(--text-muted)', fontSize: '12px', fontWeight: 600, fontFamily: 'var(--font-body)', transition: 'all 0.2s' }}>
             <Grid size={14} /> Compact
           </button>
-          <button
-            onClick={() => toggleCardSize('detailed')}
-            title="Detailed view"
-            style={{
-              padding: '6px 10px', borderRadius: '6px', border: 'none', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', gap: '5px',
-              background: cardSize === 'detailed' ? 'var(--accent)' : 'transparent',
-              color: cardSize === 'detailed' ? 'white' : 'var(--text-muted)',
-              fontSize: '12px', fontWeight: 600, fontFamily: 'var(--font-body)',
-              transition: 'all 0.2s'
-            }}>
+          <button onClick={() => toggleCardSize('detailed')} title="Detailed view"
+            style={{ padding: '6px 10px', borderRadius: '6px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', background: cardSize === 'detailed' ? 'var(--accent)' : 'transparent', color: cardSize === 'detailed' ? 'white' : 'var(--text-muted)', fontSize: '12px', fontWeight: 600, fontFamily: 'var(--font-body)', transition: 'all 0.2s' }}>
             <LayoutGrid size={14} /> Detailed
           </button>
         </div>
@@ -167,7 +166,8 @@ export default function MediaList({ category, userId, onAdd, defaultStatus }) {
               onEdit={() => setEditItem(item)}
               onDelete={() => handleDelete(item.id)}
               showCategory={isAllCategories}
-              cardSize={cardSize} />
+              cardSize={cardSize}
+              isTouch={isTouch} />
           ))}
         </div>
       )}
@@ -181,11 +181,14 @@ export default function MediaList({ category, userId, onAdd, defaultStatus }) {
   )
 }
 
-function MediaCard({ item, onEdit, onDelete, showCategory, cardSize }) {
+function MediaCard({ item, onEdit, onDelete, showCategory, cardSize, isTouch }) {
   const [hovered, setHovered] = useState(false)
   const statusCfg = STATUS_LABELS[item.status]
   const catCfg = CATEGORY_CONFIG[item.category]
   const isCompact = cardSize === 'compact'
+
+  // On touch devices always show buttons, on desktop show on hover
+  const showButtons = isTouch || hovered
 
   return (
     <div className="card" style={{ position: 'relative', display: 'flex', flexDirection: 'column' }}
@@ -198,26 +201,35 @@ function MediaCard({ item, onEdit, onDelete, showCategory, cardSize }) {
           : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-secondary)' }}><Film size={isCompact ? 32 : 40} style={{ color: 'var(--text-muted)' }} /></div>
         }
 
-
-
-        {/* Hover edit/delete overlay */}
-        {hovered && (
-          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', animation: 'fadeIn 0.15s ease' }}>
-            <button onClick={onEdit} style={{ padding: '10px', borderRadius: '10px', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><Edit2 size={16} /></button>
-            <button onClick={onDelete} style={{ padding: '10px', borderRadius: '10px', background: 'rgba(230,57,70,0.25)', border: '1px solid rgba(230,57,70,0.45)', color: '#ff6b6b', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><Trash2 size={16} /></button>
+        {/* Edit/delete — hover on desktop, always visible on mobile */}
+        {isTouch ? (
+          // Mobile: small buttons always visible in top-right corner
+          <div style={{ position: 'absolute', top: '6px', right: '6px', display: 'flex', gap: '5px' }}>
+            <button onClick={onEdit} style={{ padding: '7px', borderRadius: '8px', background: 'rgba(0,0,0,0.65)', border: '1px solid rgba(255,255,255,0.15)', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+              <Edit2 size={13} />
+            </button>
+            <button onClick={onDelete} style={{ padding: '7px', borderRadius: '8px', background: 'rgba(230,57,70,0.6)', border: '1px solid rgba(230,57,70,0.4)', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+              <Trash2 size={13} />
+            </button>
           </div>
+        ) : (
+          // Desktop: overlay on hover
+          hovered && (
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', animation: 'fadeIn 0.15s ease' }}>
+              <button onClick={onEdit} style={{ padding: '10px', borderRadius: '10px', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><Edit2 size={16} /></button>
+              <button onClick={onDelete} style={{ padding: '10px', borderRadius: '10px', background: 'rgba(230,57,70,0.25)', border: '1px solid rgba(230,57,70,0.45)', color: '#ff6b6b', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><Trash2 size={16} /></button>
+            </div>
+          )
         )}
       </div>
 
       {/* Info section */}
       <div style={{ padding: isCompact ? '8px 10px' : '12px 14px', display: 'flex', flexDirection: 'column', gap: isCompact ? '4px' : '8px', flex: 1 }}>
 
-        {/* Title */}
         <div style={{ fontSize: isCompact ? '12px' : '14px', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.3 }}>
           {item.name}
         </div>
 
-        {/* Category + Country — both modes */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
           <span style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)', background: 'var(--bg-secondary)', borderRadius: '5px', padding: '2px 6px' }}>
             {catCfg?.emoji} {item.subcategory ? `${catCfg?.label} ${item.subcategory}` : catCfg?.label}
@@ -229,12 +241,10 @@ function MediaCard({ item, onEdit, onDelete, showCategory, cardSize }) {
           )}
         </div>
 
-        {/* Status — both modes */}
         <span className={`badge ${statusCfg?.class}`} style={{ fontSize: isCompact ? '10px' : '11px', padding: isCompact ? '2px 7px' : '3px 10px' }}>
           {statusCfg?.label}
         </span>
 
-        {/* Rating — both modes */}
         {item.rating ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             <Star size={isCompact ? 11 : 13} style={{ color: 'var(--gold)', fill: 'var(--gold)' }} />
@@ -242,14 +252,12 @@ function MediaCard({ item, onEdit, onDelete, showCategory, cardSize }) {
           </div>
         ) : null}
 
-        {/* Seasons — both modes */}
         {item.seasons && (
           <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
             📺 {item.current_season ? `S${item.current_season}/${item.seasons}` : `${item.seasons} Season${item.seasons > 1 ? 's' : ''}`}
           </div>
         )}
 
-        {/* Compact: country shown small at bottom */}
         {isCompact && item.country && (
           <div style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '2px' }}>
             <Globe size={9} /> {item.country}
