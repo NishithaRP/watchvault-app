@@ -63,6 +63,7 @@ body {
 
 @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes slideIn { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(100%); } to { opacity: 1; transform: translateY(0); } }
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 
 .fade-in { animation: fadeIn 0.4s ease forwards; }
@@ -97,9 +98,30 @@ select.input option { background: var(--bg-card); color: var(--text-primary); }
 .badge-plan      { background: rgba(244,162,97,0.15); color: var(--gold); }
 .badge-dropped   { background: rgba(230,57,70,0.15);  color: var(--accent); }
 
-/* Modal */
-.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.65); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
-.modal { background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 16px; width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; animation: fadeIn 0.25s ease; box-shadow: var(--shadow); }
+/* Modal — desktop */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.65);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+}
+.modal {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 560px;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: fadeIn 0.25s ease;
+  box-shadow: var(--shadow);
+  position: relative;
+}
 .modal-header { padding: 24px 24px 0; display: flex; align-items: center; justify-content: space-between; }
 .modal-body { padding: 20px 24px 24px; }
 
@@ -115,40 +137,32 @@ select.input option { background: var(--bg-card); color: var(--text-primary); }
 .theme-toggle.dark::after { transform: translateX(20px); }
 
 /* Light mode specific overrides */
-[data-theme="light"] aside {
-  box-shadow: 2px 0 12px rgba(0,0,0,0.06);
-}
-[data-theme="light"] header {
-  box-shadow: 0 1px 8px rgba(0,0,0,0.06);
-}
+[data-theme="light"] aside { box-shadow: 2px 0 12px rgba(0,0,0,0.06); }
+[data-theme="light"] header { box-shadow: 0 1px 8px rgba(0,0,0,0.06); }
 
 /* ── MOBILE RESPONSIVE ── */
 @media (max-width: 767px) {
-  /* Filters stack vertically */
-  .filters-bar {
-    flex-direction: column;
-  }
+  .filters-bar { flex-direction: column; }
+  .card:hover { transform: none; }
 
-  /* Modal full screen on mobile */
-  .modal {
-    max-width: 100%;
-    max-height: 95vh;
-    border-radius: 16px 16px 0 0;
-    margin-top: auto;
-  }
-
+  /* Modal overlay — fixed to viewport, not page */
   .modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
     align-items: flex-end;
+    justify-content: center;
     padding: 0;
   }
 
-  /* Cards grid tighter on mobile */
-  .card:hover {
-    transform: none;
+  /* Modal slides up from bottom */
+  .modal {
+    width: 100%;
+    max-width: 100%;
+    max-height: 88vh;
+    border-radius: 20px 20px 0 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    animation: slideUp 0.3s ease;
+    margin: 0;
   }
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
 }
