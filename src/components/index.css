@@ -145,25 +145,25 @@ select.input option { background: var(--bg-card); color: var(--text-primary); }
   .filters-bar { flex-direction: column; }
   .card:hover { transform: none; }
 
-  /* Modal overlay — fixed to viewport, not page */
+  /* Modal overlay — fixed to viewport */
   .modal-overlay {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
-    align-items: flex-end;
+    align-items: flex-start;
     justify-content: center;
-    padding: 0;
+    padding: 16px;
+    overflow-y: auto;
   }
 
-  /* Modal slides up from bottom */
+  /* Modal appears at top on mobile */
   .modal {
     width: 100%;
     max-width: 100%;
-    height: 80vh;
-    max-height: 80vh;
-    border-radius: 20px 20px 0 0;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    animation: slideUp 0.3s ease;
-    margin: 0;
+    max-height: none;
+    height: auto;
+    border-radius: 16px;
+    overflow-y: visible;
+    animation: fadeIn 0.25s ease;
+    margin: 0 auto;
   }
 }
