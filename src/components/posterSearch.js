@@ -57,23 +57,25 @@ async function searchGoogleBooks(query) {
     )
     const data = await res.json()
     return (data.items || [])
-      .filter(book => book.volumeInfo?.imageLinks?.thumbnail)
       .slice(0, 6)
       .map(book => {
         const info = book.volumeInfo
-        const thumbnail = (info.imageLinks.thumbnail || info.imageLinks.smallThumbnail || '')
-          .replace('zoom=1', 'zoom=2')
+        const links = info.imageLinks || {}
+        const rawThumb = links.extraLarge || links.large || links.medium || links.small || links.thumbnail || links.smallThumbnail || ''
+        const thumbnail = rawThumb
           .replace('http://', 'https://')
+          .replace('&edge=curl', '')
         return {
           id: `gbooks-${book.id}`,
           title: info.title || 'Unknown',
-          poster: thumbnail,
+          poster: thumbnail || `https://via.placeholder.com/200x300/16161f/9090a8?text=${encodeURIComponent(info.title || 'Book')}`,
           year: info.publishedDate ? info.publishedDate.slice(0, 4) : '',
           country: '',
           source: 'GoogleBooks',
         }
       })
-  } catch { return [] }
+      .filter(b => b.poster)
+  } catch (e) { console.error('Google Books error:', e); return [] }
 }
 
 async function searchMangaDex(query) {
