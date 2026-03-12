@@ -48,7 +48,34 @@ async function searchTMDB(query, category) {
   } catch { return [] }
 }
 
-// MangaDex — broad search, no language filter so it catches Chinese manhua too
+// Google Books API — free, no API key needed
+async function searchGoogleBooks(query) {
+  if (!query.trim()) return []
+  try {
+    const res = await fetch(
+      `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=9&printType=books`
+    )
+    const data = await res.json()
+    return (data.items || [])
+      .filter(book => book.volumeInfo?.imageLinks?.thumbnail)
+      .slice(0, 6)
+      .map(book => {
+        const info = book.volumeInfo
+        const thumbnail = (info.imageLinks.thumbnail || info.imageLinks.smallThumbnail || '')
+          .replace('zoom=1', 'zoom=2')
+          .replace('http://', 'https://')
+        return {
+          id: `gbooks-${book.id}`,
+          title: info.title || 'Unknown',
+          poster: thumbnail,
+          year: info.publishedDate ? info.publishedDate.slice(0, 4) : '',
+          country: '',
+          source: 'GoogleBooks',
+        }
+      })
+  } catch { return [] }
+}
+
 async function searchMangaDex(query) {
   if (!query.trim()) return []
   try {
@@ -57,7 +84,6 @@ async function searchMangaDex(query) {
     )
     const data = await res.json()
     const seen = new Set()
-
     return (data.data || [])
       .filter(m => {
         if (seen.has(m.id)) return false
@@ -86,7 +112,6 @@ async function searchMangaDex(query) {
   } catch { return [] }
 }
 
-// Single AniList search query
 async function aniListQuery(query, type, countryOfOrigin) {
   const countryFilter = countryOfOrigin ? `, countryOfOrigin: "${countryOfOrigin}"` : ''
   const gql = `
@@ -156,7 +181,6 @@ async function searchAniList(query, category) {
   } catch { return [] }
 }
 
-// Fetch extra details from TMDB (country + seasons)
 export async function fetchTMDBDetails(tmdbId, mediaType) {
   if (!TMDB_TOKEN) return {}
   try {
@@ -174,7 +198,6 @@ export async function fetchTMDBDetails(tmdbId, mediaType) {
   } catch { return {} }
 }
 
-// Fetch anime seasons + country from AniList
 export async function fetchAniListDetails(anilistId, format) {
   try {
     const isMovie = ['MOVIE', 'OVA', 'ONA', 'SPECIAL', 'MUSIC'].includes(format)
@@ -212,6 +235,10 @@ export async function fetchAniListDetails(anilistId, format) {
 export async function searchPosters(query, category) {
   if (!query || query.trim().length < 2) return []
 
+  if (category === 'books') {
+    return searchGoogleBooks(query)
+  }
+
   if (['movie', 'series'].includes(category)) {
     return searchTMDB(query, category)
   }
@@ -225,13 +252,10 @@ export async function searchPosters(query, category) {
   }
 
   if (category === 'manhwa') {
-    // Search AniList and MangaDex in parallel
     const [anilistResults, mangadexResults] = await Promise.all([
       searchAniList(query, 'manhwa'),
       searchMangaDex(query),
     ])
-
-    // Merge, deduplicate by title, AniList first then MangaDex
     const seen = new Set()
     const merged = []
     for (const r of [...anilistResults, ...mangadexResults]) {

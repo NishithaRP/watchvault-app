@@ -34,6 +34,7 @@ const SOURCE_LABELS = {
   TMDB:        { label: 'TMDB',    color: '#01b4e4' },
   AniList:     { label: 'AniList', color: '#02a9ff' },
   MyAnimeList: { label: 'MAL',     color: '#2e51a2' },
+  GoogleBooks: { label: 'Books',   color: '#4caf50' },
 }
 
 const CATEGORY_SEARCH_HINT = {
@@ -43,7 +44,7 @@ const CATEGORY_SEARCH_HINT = {
   animation: 'Searches TMDB + AniList',
   donghua:   'Searches AniList — Chinese anime',
   manhwa:    'Searches AniList + MyAnimeList — Korean manhwa',
-  books:     'Enter title manually or paste a cover image URL',
+  books:     'Searches Google Books — free cover search',
 }
 
 export default function AddMediaModal({ onClose, onSaved, userId, initialCategory }) {
@@ -88,7 +89,6 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
   }, [form.name])
 
   useEffect(() => {
-    if (isBooks) return // No auto search for books
     if (posterJustSelected.current) { posterJustSelected.current = false; return }
     if (!form.name.trim() || form.name.length < 2) { setSearchResults([]); setShowResults(false); return }
     if (selectedPoster) return
@@ -280,7 +280,7 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
             )}
 
             {/* Poster */}
-            {!isBooks && selectedPoster ? (
+            {selectedPoster ? (
               <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', padding: '12px', background: 'var(--bg-secondary)', borderRadius: '10px', border: '1px solid var(--border)' }}>
                 <img src={selectedPoster.poster} alt={selectedPoster.title} style={{ width: '56px', borderRadius: '6px', aspectRatio: '2/3', objectFit: 'cover', flexShrink: 0 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -298,7 +298,7 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
               </div>
             ) : (
               <div className="form-group">
-                <label className="form-label">{isBooks ? 'Cover Image URL' : 'Or paste image URL manually'}</label>
+                <label className="form-label">Or paste cover image URL</label>
                 <input className="input" placeholder="https://image.url/cover.jpg"
                   value={form.image_url} onChange={e => set('image_url', e.target.value)} />
               </div>
