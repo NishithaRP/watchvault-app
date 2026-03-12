@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import { Film, Tv, Sparkles, BookOpen, LayoutDashboard, LogOut, Plus, Menu, X, BarChart2, Sun, Moon } from 'lucide-react'
+import { Film, Tv, Sparkles, BookOpen, LayoutDashboard, LogOut, Plus, Menu, X, BarChart2, Sun, Moon, Book } from 'lucide-react'
 import Dashboard from '../components/Dashboard'
 import MediaList from '../components/MediaList'
 import AddMediaModal from '../components/AddMediaModal'
@@ -15,6 +15,7 @@ const NAV_ITEMS = [
   { id: 'animation',  label: 'Animation', icon: Film,      category: 'animation' },
   { id: 'donghua',    label: 'Donghua',   icon: Tv,        category: 'donghua' },
   { id: 'manhwa',     label: 'Manhwa',    icon: BookOpen,  category: 'manhwa' },
+  { id: 'books',      label: 'Books',     icon: Book,      category: 'books' },
 ]
 
 const STATUS_LABELS_MAP = {
@@ -55,7 +56,7 @@ export default function MainApp({ session, theme, toggleTheme }) {
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', position: 'relative' }}>
 
-      {/* ── SIDEBAR ── always fixed/absolute, slides in on mobile */}
+      {/* ── SIDEBAR ── */}
       <aside style={{
         width: '240px',
         background: 'var(--bg-secondary)',
@@ -63,8 +64,7 @@ export default function MainApp({ session, theme, toggleTheme }) {
         display: 'flex',
         flexDirection: 'column',
         position: 'fixed',
-        top: 0,
-        left: 0,
+        top: 0, left: 0,
         height: '100%',
         zIndex: 300,
         transform: isMobile
@@ -82,8 +82,7 @@ export default function MainApp({ session, theme, toggleTheme }) {
             </div>
             <span style={{ fontFamily: 'var(--font-display)', fontSize: '1.25rem', letterSpacing: '0.1em', color: 'var(--text-primary)' }}>WATCHVAULT</span>
           </div>
-          <button
-            onClick={() => setSidebarOpen(false)}
+          <button onClick={() => setSidebarOpen(false)}
             style={{ background: 'var(--bg-card-hover)', border: '1px solid var(--border)', borderRadius: '8px', padding: '6px', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', transition: 'all 0.2s' }}
             onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = 'white' }}
             onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-card-hover)'; e.currentTarget.style.color = 'var(--text-secondary)' }}>
@@ -137,10 +136,8 @@ export default function MainApp({ session, theme, toggleTheme }) {
 
       {/* ── BACKDROP (mobile only) ── */}
       {isMobile && sidebarOpen && (
-        <div
-          onClick={() => setSidebarOpen(false)}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 299, backdropFilter: 'blur(2px)' }}
-        />
+        <div onClick={() => setSidebarOpen(false)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 299, backdropFilter: 'blur(2px)' }} />
       )}
 
       {/* ── MAIN CONTENT ── */}
@@ -154,33 +151,23 @@ export default function MainApp({ session, theme, toggleTheme }) {
       }}>
         {/* Header */}
         <header style={{
-          padding: '12px 16px',
-          borderBottom: '1px solid var(--border)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
-          background: 'var(--bg-primary)',
-          position: 'sticky',
-          top: 0,
-          zIndex: 100,
+          padding: '12px 16px', borderBottom: '1px solid var(--border)',
+          display: 'flex', alignItems: 'center', gap: '12px',
+          background: 'var(--bg-primary)', position: 'sticky', top: 0, zIndex: 100,
         }}>
-          <button
-            onClick={() => setSidebarOpen(true)}
+          <button onClick={() => setSidebarOpen(true)}
             style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '8px', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
             <Menu size={18} />
           </button>
-
           <h1 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {pageTitle}
           </h1>
-
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
             <button onClick={toggleTheme}
               style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '8px', padding: '8px', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center' }}>
               {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
             </button>
-            <button className="btn btn-primary"
-              onClick={() => setShowAdd(true)}
+            <button className="btn btn-primary" onClick={() => setShowAdd(true)}
               style={{ padding: '8px 12px', fontSize: '13px', gap: '6px' }}>
               <Plus size={15} />
               {!isMobile && 'Add Entry'}
@@ -199,7 +186,14 @@ export default function MainApp({ session, theme, toggleTheme }) {
         </div>
       </main>
 
-      {showAdd && <AddMediaModal onClose={() => setShowAdd(false)} onSaved={handleAdded} userId={session.user.id} />}
+      {showAdd && (
+        <AddMediaModal
+          onClose={() => setShowAdd(false)}
+          onSaved={handleAdded}
+          userId={session.user.id}
+          initialCategory={activeItem?.category || 'movie'}
+        />
+      )}
     </div>
   )
 }

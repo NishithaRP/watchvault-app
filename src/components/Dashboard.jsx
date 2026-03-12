@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import { Film, Tv, Sparkles, BookOpen, Eye, CheckCircle, Clock, TrendingUp, Star, Globe, Grid, LayoutGrid } from 'lucide-react'
+import { Film, Tv, Sparkles, BookOpen, Eye, CheckCircle, Clock, TrendingUp, Star, Globe, Grid, LayoutGrid, Book } from 'lucide-react'
 
 const CATEGORY_CONFIG = {
   movie:     { label: 'Movie',     emoji: '🎬', icon: Film,     color: '#e63946' },
@@ -9,6 +9,7 @@ const CATEGORY_CONFIG = {
   animation: { label: 'Animation', emoji: '🎨', icon: Film,     color: '#f4a261' },
   donghua:   { label: 'Donghua',   emoji: '🐉', icon: Tv,       color: '#2ec4b6' },
   manhwa:    { label: 'Manhwa',    emoji: '📖', icon: BookOpen, color: '#a8dadc' },
+  books:     { label: 'Books',     emoji: '📚', icon: Book,     color: '#e9c46a' },
 }
 
 const STATUS_CONFIG = {
@@ -25,7 +26,6 @@ function RecentCard({ item, cardSize }) {
 
   return (
     <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
-      {/* Poster */}
       <div style={{ height: isCompact ? '200px' : '260px', background: 'var(--bg-secondary)', position: 'relative', overflow: 'hidden', flexShrink: 0, lineHeight: 0 }}>
         {item.image_url
           ? <img src={item.image_url} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top', display: 'block' }} />
@@ -34,15 +34,10 @@ function RecentCard({ item, cardSize }) {
             </div>
         }
       </div>
-
-      {/* Info */}
       <div style={{ padding: isCompact ? '8px 10px' : '12px 14px', display: 'flex', flexDirection: 'column', gap: isCompact ? '4px' : '8px' }}>
-        {/* Title */}
         <div style={{ fontSize: isCompact ? '12px' : '14px', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.3 }}>
           {item.name}
         </div>
-
-        {/* Category + Country */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
           <span style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)', background: 'var(--bg-secondary)', borderRadius: '5px', padding: '2px 6px' }}>
             {catCfg?.emoji} {catCfg?.label}
@@ -53,21 +48,15 @@ function RecentCard({ item, cardSize }) {
             </span>
           )}
         </div>
-
-        {/* Status */}
         <span className={`badge ${statusCfg?.badge}`} style={{ fontSize: isCompact ? '10px' : '11px', padding: isCompact ? '2px 7px' : '3px 10px', alignSelf: 'flex-start' }}>
           {statusCfg?.label}
         </span>
-
-        {/* Rating */}
         {item.rating && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             <Star size={isCompact ? 11 : 13} style={{ color: 'var(--gold)', fill: 'var(--gold)' }} />
             <span style={{ fontSize: isCompact ? '11px' : '13px', fontWeight: 700, color: 'var(--gold)' }}>{item.rating}/10</span>
           </div>
         )}
-
-        {/* Seasons */}
         {item.seasons && (
           <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
             📺 {item.current_season ? `S${item.current_season}/${item.seasons}` : `${item.seasons} Season${item.seasons > 1 ? 's' : ''}`}
@@ -169,41 +158,24 @@ export default function Dashboard({ userId, onNavigate, onStatusClick }) {
         </div>
       </div>
 
-      {/* Recently added with size toggle */}
+      {/* Recently added */}
       {recents.length > 0 && (
         <div>
-          {/* Section header with toggle */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
             <h3 style={{ fontSize: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-secondary)' }}>
               Recently Added
             </h3>
-            {/* Card size toggle */}
             <div style={{ display: 'flex', background: 'var(--bg-secondary)', borderRadius: '8px', padding: '3px', gap: '2px', border: '1px solid var(--border)' }}>
               <button onClick={() => toggleCardSize('compact')}
-                title="Compact view"
-                style={{
-                  padding: '5px 10px', borderRadius: '6px', border: 'none', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', gap: '5px',
-                  background: cardSize === 'compact' ? 'var(--accent)' : 'transparent',
-                  color: cardSize === 'compact' ? 'white' : 'var(--text-muted)',
-                  fontSize: '12px', fontWeight: 600, fontFamily: 'var(--font-body)', transition: 'all 0.2s'
-                }}>
+                style={{ padding: '5px 10px', borderRadius: '6px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', background: cardSize === 'compact' ? 'var(--accent)' : 'transparent', color: cardSize === 'compact' ? 'white' : 'var(--text-muted)', fontSize: '12px', fontWeight: 600, fontFamily: 'var(--font-body)', transition: 'all 0.2s' }}>
                 <Grid size={13} /> Compact
               </button>
               <button onClick={() => toggleCardSize('detailed')}
-                title="Detailed view"
-                style={{
-                  padding: '5px 10px', borderRadius: '6px', border: 'none', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', gap: '5px',
-                  background: cardSize === 'detailed' ? 'var(--accent)' : 'transparent',
-                  color: cardSize === 'detailed' ? 'white' : 'var(--text-muted)',
-                  fontSize: '12px', fontWeight: 600, fontFamily: 'var(--font-body)', transition: 'all 0.2s'
-                }}>
+                style={{ padding: '5px 10px', borderRadius: '6px', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', background: cardSize === 'detailed' ? 'var(--accent)' : 'transparent', color: cardSize === 'detailed' ? 'white' : 'var(--text-muted)', fontSize: '12px', fontWeight: 600, fontFamily: 'var(--font-body)', transition: 'all 0.2s' }}>
                 <LayoutGrid size={13} /> Detailed
               </button>
             </div>
           </div>
-
           <div style={{ display: 'grid', gridTemplateColumns: gridCols, gap: '16px' }}>
             {recents.map(item => (
               <RecentCard key={item.id} item={item} cardSize={cardSize} />
@@ -212,7 +184,6 @@ export default function Dashboard({ userId, onNavigate, onStatusClick }) {
         </div>
       )}
 
-      {/* Empty state */}
       {stats?.total === 0 && (
         <div style={{ textAlign: 'center', padding: '60px 40px', background: 'var(--bg-card)', borderRadius: '16px', border: '1px dashed var(--border-light)' }}>
           <Film size={48} style={{ color: 'var(--text-muted)', marginBottom: '16px' }} />

@@ -10,6 +10,7 @@ const CATEGORIES = [
   { value: 'animation', label: '🎨 Animation' },
   { value: 'donghua',   label: '🐉 Donghua' },
   { value: 'manhwa',    label: '📖 Manhwa' },
+  { value: 'books',     label: '📚 Books' },
 ]
 
 const COUNTRIES = [
@@ -24,13 +25,15 @@ const COUNTRIES = [
   'Greece', 'Other'
 ]
 
-const HAS_SUBCATEGORY = ['anime', 'animation', 'donghua']
+const HAS_SUBCATEGORY = ['anime', 'animation', 'donghua', 'books']
 const HAS_SEASONS = ['series', 'anime', 'animation', 'donghua']
 
+const BOOK_SUBCATEGORIES = ['Novel', 'Light Novel', 'Translation', 'Short Stories', 'Non-Fiction', 'Other']
+
 const SOURCE_LABELS = {
-  TMDB:      { label: 'TMDB',      color: '#01b4e4' },
-  AniList:   { label: 'AniList',   color: '#02a9ff' },
-  MyAnimeList: { label: 'MAL', color: '#2e51a2' },
+  TMDB:        { label: 'TMDB',    color: '#01b4e4' },
+  AniList:     { label: 'AniList', color: '#02a9ff' },
+  MyAnimeList: { label: 'MAL',     color: '#2e51a2' },
 }
 
 const CATEGORY_SEARCH_HINT = {
@@ -40,6 +43,7 @@ const CATEGORY_SEARCH_HINT = {
   animation: 'Searches TMDB + AniList',
   donghua:   'Searches AniList — Chinese anime',
   manhwa:    'Searches AniList + MyAnimeList — Korean manhwa',
+  books:     'Enter title manually or paste a cover image URL',
 }
 
 export default function AddMediaModal({ onClose, onSaved, userId, initialCategory }) {
@@ -67,38 +71,26 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
 
   const set = (key, val) => setForm(f => ({ ...f, [key]: val }))
 
-  const isSeries = HAS_SUBCATEGORY.includes(form.category)
+  const isBooks = form.category === 'books'
+  const isSeries = HAS_SUBCATEGORY.includes(form.category) && !isBooks
   const needsSeasons = HAS_SEASONS.includes(form.category) &&
     (!isSeries || form.subcategory === 'series')
 
   useEffect(() => {
-    if (!form.name.trim() || form.name.length < 2) {
-      setDuplicate(null)
-      return
-    }
+    if (!form.name.trim() || form.name.length < 2) { setDuplicate(null); return }
     clearTimeout(duplicateTimer.current)
     duplicateTimer.current = setTimeout(async () => {
-      const { data } = await supabase
-        .from('media')
-        .select('id, name, category')
-        .eq('user_id', userId)
-        .ilike('name', form.name.trim())
-        .limit(1)
+      const { data } = await supabase.from('media').select('id, name, category')
+        .eq('user_id', userId).ilike('name', form.name.trim()).limit(1)
       setDuplicate(data?.length > 0 ? data[0] : null)
     }, 800)
     return () => clearTimeout(duplicateTimer.current)
   }, [form.name])
 
   useEffect(() => {
-    if (posterJustSelected.current) {
-      posterJustSelected.current = false
-      return
-    }
-    if (!form.name.trim() || form.name.length < 2) {
-      setSearchResults([])
-      setShowResults(false)
-      return
-    }
+    if (isBooks) return // No auto search for books
+    if (posterJustSelected.current) { posterJustSelected.current = false; return }
+    if (!form.name.trim() || form.name.length < 2) { setSearchResults([]); setShowResults(false); return }
     if (selectedPoster) return
 
     clearTimeout(searchTimer.current)
@@ -120,49 +112,36 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
     set('name', result.title)
     setShowResults(false)
     setSearchResults([])
-
     if (result.country) set('country', result.country)
-
     setLoadingDetails(true)
-
     if (result.source === 'TMDB' && result.tmdbId) {
       const details = await fetchTMDBDetails(result.tmdbId, result.mediaType)
       if (details.country) set('country', details.country)
       if (details.seasons) set('seasons', String(details.seasons))
     }
-
     if (result.source === 'AniList' && result.anilistId) {
       const details = await fetchAniListDetails(result.anilistId, result.format)
       if (details.country) set('country', details.country)
       if (details.seasons) set('seasons', String(details.seasons))
     }
-
-    // MyAnimeList results already have country auto-detected from type
     setLoadingDetails(false)
   }
 
-  const handleClearPoster = () => {
-    setSelectedPoster(null)
-    set('image_url', '')
-  }
+  const handleClearPoster = () => { setSelectedPoster(null); set('image_url', '') }
 
   const handleSave = async () => {
     if (!form.name.trim()) { setError('Name is required'); return }
-    if (duplicate && !showDuplicateConfirm) {
-      setShowDuplicateConfirm(true)
-      return
-    }
+    if (duplicate && !showDuplicateConfirm) { setShowDuplicateConfirm(true); return }
     await doSave()
   }
 
   const doSave = async () => {
-    setSaving(true); setError('')
-    setShowDuplicateConfirm(false)
+    setSaving(true); setError(''); setShowDuplicateConfirm(false)
     const payload = {
       user_id: userId,
       name: form.name.trim(),
       category: form.category,
-      subcategory: isSeries ? form.subcategory || null : null,
+      subcategory: (isSeries || isBooks) ? form.subcategory || null : null,
       country: form.country || null,
       status: form.status,
       rating: form.rating || null,
@@ -204,7 +183,7 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
               </div>
             </div>
 
-            {/* Subcategory */}
+            {/* Subcategory for anime/animation/donghua */}
             {isSeries && (
               <div className="form-group">
                 <label className="form-label">Type</label>
@@ -219,20 +198,33 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
               </div>
             )}
 
-            {/* Title with auto search */}
+            {/* Book subcategory */}
+            {isBooks && (
+              <div className="form-group">
+                <label className="form-label">Book Type</label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                  {BOOK_SUBCATEGORIES.map(sub => (
+                    <button key={sub} onClick={() => set('subcategory', sub)}
+                      style={{ padding: '8px', borderRadius: '8px', border: '1px solid', borderColor: form.subcategory === sub ? 'var(--accent)' : 'var(--border)', background: form.subcategory === sub ? 'var(--accent-dim)' : 'var(--bg-secondary)', color: form.subcategory === sub ? 'var(--accent)' : 'var(--text-secondary)', cursor: 'pointer', fontSize: '12px', fontWeight: 600, fontFamily: 'var(--font-body)', transition: 'all 0.15s' }}>
+                      {sub}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Title */}
             <div className="form-group">
               <label className="form-label">Title *</label>
               <div style={{ position: 'relative' }}>
                 <div style={{ position: 'relative' }}>
                   <input className="input"
-                    placeholder={`Search ${form.category} title...`}
+                    placeholder={isBooks ? 'Enter book title...' : `Search ${form.category} title...`}
                     value={form.name}
                     onChange={e => { set('name', e.target.value); setDuplicate(null); setShowDuplicateConfirm(false); if (selectedPoster && e.target.value !== selectedPoster.title) { setSelectedPoster(null); set('image_url', '') } }}
                     style={{ paddingRight: '36px', borderColor: duplicate ? 'orange' : undefined }} />
                   <div style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}>
-                    {searching
-                      ? <Loader size={15} style={{ animation: 'spin 1s linear infinite' }} />
-                      : <Search size={15} />}
+                    {searching ? <Loader size={15} style={{ animation: 'spin 1s linear infinite' }} /> : <Search size={15} />}
                   </div>
                 </div>
 
@@ -240,27 +232,20 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
                 {duplicate && !showDuplicateConfirm && (
                   <div style={{ marginTop: '6px', padding: '8px 12px', borderRadius: '8px', background: 'rgba(255,165,0,0.1)', border: '1px solid rgba(255,165,0,0.4)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <AlertTriangle size={14} color="orange" />
-                    <span style={{ fontSize: '12px', color: 'orange' }}>
-                      "{duplicate.name}" already exists in your {duplicate.category} list!
-                    </span>
+                    <span style={{ fontSize: '12px', color: 'orange' }}>"{duplicate.name}" already exists in your {duplicate.category} list!</span>
                   </div>
                 )}
 
                 {/* Results dropdown */}
                 {showResults && (
                   <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 500, background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: '10px', marginTop: '6px', padding: '10px', boxShadow: '0 8px 32px rgba(0,0,0,0.4)', maxHeight: '220px', overflowY: 'auto' }}>
-                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                      Select a poster
-                    </div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Select a poster</div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
                       {searchResults.map(result => (
                         <button key={result.id} onClick={() => handleSelectPoster(result)}
                           style={{ background: 'none', border: '2px solid', borderColor: selectedPoster?.id === result.id ? 'var(--accent)' : 'transparent', borderRadius: '8px', cursor: 'pointer', padding: 0, overflow: 'hidden', position: 'relative', transition: 'border-color 0.15s' }}>
-                          <img src={result.poster} alt={result.title}
-                            style={{ width: '100%', aspectRatio: '2/3', objectFit: 'cover', display: 'block' }} />
-                          <div style={{ position: 'absolute', top: '5px', left: '5px', background: SOURCE_LABELS[result.source]?.color || '#333', borderRadius: '3px', padding: '1px 5px', fontSize: '9px', fontWeight: 700, color: 'white' }}>
-                            {result.source}
-                          </div>
+                          <img src={result.poster} alt={result.title} style={{ width: '100%', aspectRatio: '2/3', objectFit: 'cover', display: 'block' }} />
+                          <div style={{ position: 'absolute', top: '5px', left: '5px', background: SOURCE_LABELS[result.source]?.color || '#333', borderRadius: '3px', padding: '1px 5px', fontSize: '9px', fontWeight: 700, color: 'white' }}>{result.source}</div>
                           <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(transparent, rgba(0,0,0,0.85))', padding: '18px 6px 6px' }}>
                             <div style={{ fontSize: '10px', fontWeight: 600, color: 'white', lineHeight: 1.2 }}>{result.title}</div>
                             {result.year && <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.6)', marginTop: '1px' }}>{result.year}</div>}
@@ -273,10 +258,7 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
                         </button>
                       ))}
                     </div>
-                    <button onClick={() => setShowResults(false)}
-                      style={{ width: '100%', marginTop: '8px', padding: '6px', background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '12px', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
-                      Dismiss
-                    </button>
+                    <button onClick={() => setShowResults(false)} style={{ width: '100%', marginTop: '8px', padding: '6px', background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: '12px', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>Dismiss</button>
                   </div>
                 )}
               </div>
@@ -289,34 +271,23 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
                   <AlertTriangle size={16} color="orange" />
                   <span style={{ fontSize: '13px', fontWeight: 600, color: 'orange' }}>Duplicate Detected!</span>
                 </div>
-                <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '12px' }}>
-                  "{duplicate.name}" already exists in your {duplicate.category} list. Are you sure you want to add it again?
-                </p>
+                <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '12px' }}>"{duplicate.name}" already exists in your {duplicate.category} list. Add anyway?</p>
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  <button onClick={doSave}
-                    style={{ flex: 1, padding: '8px', borderRadius: '8px', background: 'orange', border: 'none', color: 'white', fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
-                    Yes, add anyway
-                  </button>
-                  <button onClick={() => setShowDuplicateConfirm(false)}
-                    style={{ flex: 1, padding: '8px', borderRadius: '8px', background: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
-                    Cancel
-                  </button>
+                  <button onClick={doSave} style={{ flex: 1, padding: '8px', borderRadius: '8px', background: 'orange', border: 'none', color: 'white', fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>Yes, add anyway</button>
+                  <button onClick={() => setShowDuplicateConfirm(false)} style={{ flex: 1, padding: '8px', borderRadius: '8px', background: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-secondary)', fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>Cancel</button>
                 </div>
               </div>
             )}
 
-            {/* Selected poster preview */}
-            {selectedPoster ? (
+            {/* Poster */}
+            {!isBooks && selectedPoster ? (
               <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', padding: '12px', background: 'var(--bg-secondary)', borderRadius: '10px', border: '1px solid var(--border)' }}>
-                <img src={selectedPoster.poster} alt={selectedPoster.title}
-                  style={{ width: '56px', borderRadius: '6px', aspectRatio: '2/3', objectFit: 'cover', flexShrink: 0 }} />
+                <img src={selectedPoster.poster} alt={selectedPoster.title} style={{ width: '56px', borderRadius: '6px', aspectRatio: '2/3', objectFit: 'cover', flexShrink: 0 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '2px' }}>{selectedPoster.title}</div>
                   <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginBottom: '8px' }}>
                     {selectedPoster.year && <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{selectedPoster.year}</span>}
-                    <span style={{ fontSize: '10px', fontWeight: 700, padding: '1px 6px', borderRadius: '3px', background: SOURCE_LABELS[selectedPoster.source]?.color, color: 'white' }}>
-                      {selectedPoster.source}
-                    </span>
+                    <span style={{ fontSize: '10px', fontWeight: 700, padding: '1px 6px', borderRadius: '3px', background: SOURCE_LABELS[selectedPoster.source]?.color, color: 'white' }}>{selectedPoster.source}</span>
                     {loadingDetails && <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Fetching details...</span>}
                   </div>
                   <div style={{ display: 'flex', gap: '10px' }}>
@@ -327,8 +298,8 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
               </div>
             ) : (
               <div className="form-group">
-                <label className="form-label">Or paste image URL manually</label>
-                <input className="input" placeholder="https://image.url/poster.jpg"
+                <label className="form-label">{isBooks ? 'Cover Image URL' : 'Or paste image URL manually'}</label>
+                <input className="input" placeholder="https://image.url/cover.jpg"
                   value={form.image_url} onChange={e => set('image_url', e.target.value)} />
               </div>
             )}
@@ -338,8 +309,8 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
               <div className="form-group">
                 <label className="form-label">Status</label>
                 <select className="input" value={form.status} onChange={e => set('status', e.target.value)}>
-                  <option value="plan_to_watch">Plan to Watch</option>
-                  <option value="watching">Currently Watching</option>
+                  <option value="plan_to_watch">{isBooks ? 'Plan to Read' : 'Plan to Watch'}</option>
+                  <option value="watching">{isBooks ? 'Currently Reading' : 'Currently Watching'}</option>
                   <option value="completed">Completed</option>
                   <option value="dropped">Dropped</option>
                 </select>
@@ -358,13 +329,11 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div className="form-group">
                   <label className="form-label">Total Seasons</label>
-                  <input className="input" type="number" min="1" placeholder="e.g. 3"
-                    value={form.seasons} onChange={e => set('seasons', e.target.value)} />
+                  <input className="input" type="number" min="1" placeholder="e.g. 3" value={form.seasons} onChange={e => set('seasons', e.target.value)} />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Current Season</label>
-                  <input className="input" type="number" min="1" placeholder="e.g. 2"
-                    value={form.current_season} onChange={e => set('current_season', e.target.value)} />
+                  <input className="input" type="number" min="1" placeholder="e.g. 2" value={form.current_season} onChange={e => set('current_season', e.target.value)} />
                 </div>
               </div>
             )}
@@ -376,11 +345,7 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
                 {[1,2,3,4,5,6,7,8,9,10].map(n => (
                   <button key={n}
                     onMouseEnter={() => setHoverRating(n)} onMouseLeave={() => setHoverRating(0)}
-                    onClick={() => {
-                      const newRating = form.rating === n ? 0 : n
-                      set('rating', newRating)
-                      if (newRating > 0) set('status', 'completed')
-                    }}
+                    onClick={() => { const newRating = form.rating === n ? 0 : n; set('rating', newRating); if (newRating > 0) set('status', 'completed') }}
                     style={{ width: '34px', height: '34px', borderRadius: '6px', border: '1px solid', borderColor: (hoverRating >= n || form.rating >= n) ? 'var(--gold)' : 'var(--border)', background: (hoverRating >= n || form.rating >= n) ? 'var(--gold-dim)' : 'var(--bg-secondary)', color: (hoverRating >= n || form.rating >= n) ? 'var(--gold)' : 'var(--text-muted)', cursor: 'pointer', fontSize: '13px', fontWeight: 700, transition: 'all 0.1s', fontFamily: 'var(--font-body)' }}>
                     {n}
                   </button>
@@ -393,8 +358,7 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
             <div className="form-group">
               <label className="form-label">Notes (optional)</label>
               <textarea className="input" rows={2} placeholder="Any thoughts..."
-                value={form.notes} onChange={e => set('notes', e.target.value)}
-                style={{ resize: 'vertical' }} />
+                value={form.notes} onChange={e => set('notes', e.target.value)} style={{ resize: 'vertical' }} />
             </div>
 
             {error && (
