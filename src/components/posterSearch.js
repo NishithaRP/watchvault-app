@@ -48,28 +48,6 @@ async function searchTMDB(query, category) {
   } catch { return [] }
 }
 
-// Open Library API — free, no key, no rate limits
-async function searchGoogleBooks(query) {
-  if (!query.trim()) return []
-  try {
-    const res = await fetch(
-      `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=10&fields=key,title,author_name,first_publish_year,cover_i`
-    )
-    const data = await res.json()
-    return (data.docs || [])
-      .filter(book => book.cover_i)
-      .slice(0, 6)
-      .map(book => ({
-        id: `openlibrary-${book.key}`,
-        title: book.title || 'Unknown',
-        poster: `https://covers.openlibrary.org/b/id/${book.cover_i}-M.jpg`,
-        year: book.first_publish_year ? String(book.first_publish_year) : '',
-        country: '',
-        source: 'GoogleBooks',
-      }))
-  } catch (e) { console.error('Open Library error:', e); return [] }
-}
-
 async function searchMangaDex(query) {
   if (!query.trim()) return []
   try {
@@ -228,10 +206,6 @@ export async function fetchAniListDetails(anilistId, format) {
 
 export async function searchPosters(query, category) {
   if (!query || query.trim().length < 2) return []
-
-  if (category === 'books') {
-    return searchGoogleBooks(query)
-  }
 
   if (['movie', 'series'].includes(category)) {
     return searchTMDB(query, category)

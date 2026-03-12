@@ -10,7 +10,6 @@ const CATEGORIES = [
   { value: 'animation', label: '🎨 Animation' },
   { value: 'donghua',   label: '🐉 Donghua' },
   { value: 'manhwa',    label: '📖 Manhwa' },
-  { value: 'books',     label: '📚 Books' },
 ]
 
 const COUNTRIES = [
@@ -25,16 +24,13 @@ const COUNTRIES = [
   'Greece', 'Other'
 ]
 
-const HAS_SUBCATEGORY = ['anime', 'animation', 'donghua', 'books']
+const HAS_SUBCATEGORY = ['anime', 'animation', 'donghua']
 const HAS_SEASONS = ['series', 'anime', 'animation', 'donghua']
-
-const BOOK_SUBCATEGORIES = ['Novel', 'Light Novel', 'Translation', 'Short Stories', 'Non-Fiction', 'Other']
 
 const SOURCE_LABELS = {
   TMDB:        { label: 'TMDB',    color: '#01b4e4' },
   AniList:     { label: 'AniList', color: '#02a9ff' },
   MyAnimeList: { label: 'MAL',     color: '#2e51a2' },
-  GoogleBooks: { label: 'OpenLibrary', color: '#4caf50' },
 }
 
 const CATEGORY_SEARCH_HINT = {
@@ -44,7 +40,6 @@ const CATEGORY_SEARCH_HINT = {
   animation: 'Searches TMDB + AniList',
   donghua:   'Searches AniList — Chinese anime',
   manhwa:    'Searches AniList + MyAnimeList — Korean manhwa',
-  books:     'Searches Open Library — free, no limits',
 }
 
 export default function AddMediaModal({ onClose, onSaved, userId, initialCategory }) {
@@ -72,8 +67,7 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
 
   const set = (key, val) => setForm(f => ({ ...f, [key]: val }))
 
-  const isBooks = form.category === 'books'
-  const isSeries = HAS_SUBCATEGORY.includes(form.category) && !isBooks
+  const isSeries = HAS_SUBCATEGORY.includes(form.category)
   const needsSeasons = HAS_SEASONS.includes(form.category) &&
     (!isSeries || form.subcategory === 'series')
 
@@ -90,8 +84,7 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
 
   useEffect(() => {
     if (posterJustSelected.current) { posterJustSelected.current = false; return }
-    const minLength = form.category === 'books' ? 4 : 2
-    if (!form.name.trim() || form.name.length < minLength) { setSearchResults([]); setShowResults(false); return }
+    if (!form.name.trim() || form.name.length < 2) { setSearchResults([]); setShowResults(false); return }
     if (selectedPoster) return
 
     clearTimeout(searchTimer.current)
@@ -101,7 +94,7 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
       setSearchResults(results)
       setShowResults(results.length > 0)
       setSearching(false)
-    }, form.category === 'books' ? 1500 : 600)
+    }, 600)
     return () => clearTimeout(searchTimer.current)
   }, [form.name, form.category])
 
@@ -142,7 +135,7 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
       user_id: userId,
       name: form.name.trim(),
       category: form.category,
-      subcategory: (isSeries || isBooks) ? form.subcategory || null : null,
+      subcategory: isSeries ? form.subcategory || null : null,
       country: form.country || null,
       status: form.status,
       rating: form.rating || null,
@@ -199,28 +192,13 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
               </div>
             )}
 
-            {/* Book subcategory */}
-            {isBooks && (
-              <div className="form-group">
-                <label className="form-label">Book Type</label>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-                  {BOOK_SUBCATEGORIES.map(sub => (
-                    <button key={sub} onClick={() => set('subcategory', sub)}
-                      style={{ padding: '8px', borderRadius: '8px', border: '1px solid', borderColor: form.subcategory === sub ? 'var(--accent)' : 'var(--border)', background: form.subcategory === sub ? 'var(--accent-dim)' : 'var(--bg-secondary)', color: form.subcategory === sub ? 'var(--accent)' : 'var(--text-secondary)', cursor: 'pointer', fontSize: '12px', fontWeight: 600, fontFamily: 'var(--font-body)', transition: 'all 0.15s' }}>
-                      {sub}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {/* Title */}
             <div className="form-group">
               <label className="form-label">Title *</label>
               <div style={{ position: 'relative' }}>
                 <div style={{ position: 'relative' }}>
                   <input className="input"
-                    placeholder={isBooks ? 'Enter book title...' : `Search ${form.category} title...`}
+                    placeholder={`Search ${form.category} title...`}
                     value={form.name}
                     onChange={e => { set('name', e.target.value); setDuplicate(null); setShowDuplicateConfirm(false); if (selectedPoster && e.target.value !== selectedPoster.title) { setSelectedPoster(null); set('image_url', '') } }}
                     style={{ paddingRight: '36px', borderColor: duplicate ? 'orange' : undefined }} />
@@ -310,8 +288,8 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
               <div className="form-group">
                 <label className="form-label">Status</label>
                 <select className="input" value={form.status} onChange={e => set('status', e.target.value)}>
-                  <option value="plan_to_watch">{isBooks ? 'Plan to Read' : 'Plan to Watch'}</option>
-                  <option value="watching">{isBooks ? 'Currently Reading' : 'Currently Watching'}</option>
+                  <option value="plan_to_watch">Plan to Watch</option>
+                  <option value="watching">Currently Watching</option>
                   <option value="completed">Completed</option>
                   <option value="dropped">Dropped</option>
                 </select>

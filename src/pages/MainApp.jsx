@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import { Film, Tv, Sparkles, BookOpen, LayoutDashboard, LogOut, Plus, Menu, X, BarChart2, Sun, Moon, Book } from 'lucide-react'
+import { Film, Tv, Sparkles, BookOpen, LayoutDashboard, LogOut, Plus, Menu, X, BarChart2, Sun, Moon } from 'lucide-react'
 import Dashboard from '../components/Dashboard'
 import MediaList from '../components/MediaList'
 import AddMediaModal from '../components/AddMediaModal'
@@ -15,7 +15,6 @@ const NAV_ITEMS = [
   { id: 'animation',  label: 'Animation', icon: Film,      category: 'animation' },
   { id: 'donghua',    label: 'Donghua',   icon: Tv,        category: 'donghua' },
   { id: 'manhwa',     label: 'Manhwa',    icon: BookOpen,  category: 'manhwa' },
-  { id: 'books',      label: 'Books',     icon: Book,      category: 'books' },
 ]
 
 const STATUS_LABELS_MAP = {

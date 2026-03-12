@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import { Film, Tv, Sparkles, BookOpen, Eye, CheckCircle, Clock, TrendingUp, Star, Globe, Grid, LayoutGrid, Book } from 'lucide-react'
+import { Film, Tv, Sparkles, BookOpen, Eye, CheckCircle, Clock, TrendingUp, Star, Globe, Grid, LayoutGrid } from 'lucide-react'
 
 const CATEGORY_CONFIG = {
   movie:     { label: 'Movie',     emoji: '🎬', icon: Film,     color: '#e63946' },
@@ -9,7 +9,6 @@ const CATEGORY_CONFIG = {
   animation: { label: 'Animation', emoji: '🎨', icon: Film,     color: '#f4a261' },
   donghua:   { label: 'Donghua',   emoji: '🐉', icon: Tv,       color: '#2ec4b6' },
   manhwa:    { label: 'Manhwa',    emoji: '📖', icon: BookOpen, color: '#a8dadc' },
-  books:     { label: 'Books',     emoji: '📚', icon: Book,     color: '#e9c46a' },
 }
 
 const STATUS_CONFIG = {
