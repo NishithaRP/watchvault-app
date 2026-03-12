@@ -90,7 +90,8 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
 
   useEffect(() => {
     if (posterJustSelected.current) { posterJustSelected.current = false; return }
-    if (!form.name.trim() || form.name.length < 2) { setSearchResults([]); setShowResults(false); return }
+    const minLength = form.category === 'books' ? 4 : 2
+    if (!form.name.trim() || form.name.length < minLength) { setSearchResults([]); setShowResults(false); return }
     if (selectedPoster) return
 
     clearTimeout(searchTimer.current)
@@ -100,7 +101,7 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
       setSearchResults(results)
       setShowResults(results.length > 0)
       setSearching(false)
-    }, 600)
+    }, form.category === 'books' ? 1500 : 600)
     return () => clearTimeout(searchTimer.current)
   }, [form.name, form.category])
 
