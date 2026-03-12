@@ -48,34 +48,26 @@ async function searchTMDB(query, category) {
   } catch { return [] }
 }
 
-// Google Books API — free, no API key needed
+// Open Library API — free, no key, no rate limits
 async function searchGoogleBooks(query) {
   if (!query.trim()) return []
   try {
     const res = await fetch(
-      `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=9&printType=books`
+      `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=10&fields=key,title,author_name,first_publish_year,cover_i`
     )
     const data = await res.json()
-    return (data.items || [])
+    return (data.docs || [])
+      .filter(book => book.cover_i)
       .slice(0, 6)
-      .map(book => {
-        const info = book.volumeInfo
-        const links = info.imageLinks || {}
-        const rawThumb = links.extraLarge || links.large || links.medium || links.small || links.thumbnail || links.smallThumbnail || ''
-        const thumbnail = rawThumb
-          .replace('http://', 'https://')
-          .replace('&edge=curl', '')
-        return {
-          id: `gbooks-${book.id}`,
-          title: info.title || 'Unknown',
-          poster: thumbnail || `https://via.placeholder.com/200x300/16161f/9090a8?text=${encodeURIComponent(info.title || 'Book')}`,
-          year: info.publishedDate ? info.publishedDate.slice(0, 4) : '',
-          country: '',
-          source: 'GoogleBooks',
-        }
-      })
-      .filter(b => b.poster)
-  } catch (e) { console.error('Google Books error:', e); return [] }
+      .map(book => ({
+        id: `openlibrary-${book.key}`,
+        title: book.title || 'Unknown',
+        poster: `https://covers.openlibrary.org/b/id/${book.cover_i}-M.jpg`,
+        year: book.first_publish_year ? String(book.first_publish_year) : '',
+        country: '',
+        source: 'GoogleBooks',
+      }))
+  } catch (e) { console.error('Open Library error:', e); return [] }
 }
 
 async function searchMangaDex(query) {

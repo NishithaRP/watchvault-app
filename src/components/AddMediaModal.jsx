@@ -34,7 +34,7 @@ const SOURCE_LABELS = {
   TMDB:        { label: 'TMDB',    color: '#01b4e4' },
   AniList:     { label: 'AniList', color: '#02a9ff' },
   MyAnimeList: { label: 'MAL',     color: '#2e51a2' },
-  GoogleBooks: { label: 'Books',   color: '#4caf50' },
+  GoogleBooks: { label: 'OpenLibrary', color: '#4caf50' },
 }
 
 const CATEGORY_SEARCH_HINT = {
@@ -44,7 +44,7 @@ const CATEGORY_SEARCH_HINT = {
   animation: 'Searches TMDB + AniList',
   donghua:   'Searches AniList — Chinese anime',
   manhwa:    'Searches AniList + MyAnimeList — Korean manhwa',
-  books:     'Searches Google Books — free cover search',
+  books:     'Searches Open Library — free, no limits',
 }
 
 export default function AddMediaModal({ onClose, onSaved, userId, initialCategory }) {
