@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import { Film, Search, Star, Trash2, Edit2, Plus, Globe, LayoutGrid, Grid } from 'lucide-react'
+import { Film, Search, Star, Trash2, Edit2, Plus, Globe, LayoutGrid, Grid, Wand2 } from 'lucide-react'
 import EditMediaModal from './EditMediaModal'
+import { searchPosters } from './posterSearch'
 
 const STATUS_LABELS = {
   watching:      { label: 'Watching',      class: 'badge-watching' },
@@ -34,6 +35,8 @@ export default function MediaList({ category, userId, onAdd, defaultStatus }) {
   const [subcatFilter, setSubcatFilter] = useState('all')
   const [ratingFilter, setRatingFilter] = useState('all')
   const [sortOrder, setSortOrder] = useState(() => localStorage.getItem('wv-sort') || 'date_desc')
+  const [fixingYears, setFixingYears] = useState(false)
+  const [fixProgress, setFixProgress] = useState('')
   const [editItem, setEditItem] = useState(null)
   const [countries, setCountries] = useState([])
   const [cardSize, setCardSize] = useState(() => localStorage.getItem('wv-cardsize') || 'detailed')
@@ -73,6 +76,30 @@ export default function MediaList({ category, userId, onAdd, defaultStatus }) {
   const handleSortChange = (val) => {
     setSortOrder(val)
     localStorage.setItem('wv-sort', val)
+  }
+
+  const handleFixYears = async () => {
+    const missing = items.filter(i => !i.release_year)
+    if (!missing.length) { alert('All entries already have a release year!'); return }
+    if (!confirm(`Auto-fetch release year for ${missing.length} entries without one? This may take a moment.`)) return
+    setFixingYears(true)
+    let done = 0
+    for (const item of missing) {
+      setFixProgress(`Fetching ${done + 1}/${missing.length}: ${item.name}`)
+      try {
+        const results = await searchPosters(item.name, item.category)
+        const match = results.find(r => r.title?.toLowerCase().trim() === item.name.toLowerCase().trim()) || results[0]
+        if (match?.year) {
+          await supabase.from('media').update({ release_year: parseInt(match.year) }).eq('id', item.id)
+        }
+      } catch {}
+      done++
+      // Small delay to avoid rate limiting
+      await new Promise(r => setTimeout(r, 400))
+    }
+    setFixingYears(false)
+    setFixProgress('')
+    loadItems()
   }
 
   const loadItems = async () => {
@@ -121,6 +148,8 @@ export default function MediaList({ category, userId, onAdd, defaultStatus }) {
       case 'rating_asc':
         if ((a.rating || 0) !== (b.rating || 0)) return (a.rating || 0) - (b.rating || 0)
         return a.name.localeCompare(b.name)
+      case 'year_asc':  return (a.release_year || 9999) - (b.release_year || 9999)
+      case 'year_desc': return (b.release_year || 0) - (a.release_year || 0)
       case 'title_asc':  return a.name.localeCompare(b.name)
       case 'title_desc': return b.name.localeCompare(a.name)
       case 'status':     return (STATUS_ORDER[a.status] ?? 9) - (STATUS_ORDER[b.status] ?? 9)
@@ -185,10 +214,21 @@ export default function MediaList({ category, userId, onAdd, defaultStatus }) {
           <option value="date_asc">↑ Date Added (Oldest)</option>
           <option value="rating_desc">↓ Rating (High to Low)</option>
           <option value="rating_asc">↑ Rating (Low to High)</option>
+          <option value="year_asc">↑ Release Year (Oldest)</option>
+          <option value="year_desc">↓ Release Year (Newest)</option>
           <option value="title_asc">A→Z Title</option>
           <option value="title_desc">Z→A Title</option>
           <option value="status">Status</option>
         </select>
+
+        {/* Fix Years button */}
+        {items.some(i => !i.release_year) && (
+          <button onClick={handleFixYears} disabled={fixingYears}
+            style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-secondary)', color: 'var(--text-muted)', cursor: fixingYears ? 'default' : 'pointer', fontSize: '12px', fontWeight: 600, fontFamily: 'var(--font-body)', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}>
+            <Wand2 size={13} />
+            {fixingYears ? fixProgress || 'Fixing...' : 'Fix Years'}
+          </button>
+        )}
 
         {/* Card size toggle */}
         <div style={{ display: 'flex', background: 'var(--bg-secondary)', borderRadius: '8px', padding: '3px', gap: '2px', border: '1px solid var(--border)' }}>

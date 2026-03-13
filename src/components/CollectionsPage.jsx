@@ -192,7 +192,7 @@ function AddEntryModal({ collection, userId, existingIds, onClose, onSaved }) {
     !existingIds.has(m.id) &&
     m.name.toLowerCase().includes(search.toLowerCase()) &&
     (categoryFilter === 'all' || m.category === categoryFilter)
-  )
+  ).sort((a, b) => (a.release_year || 9999) - (b.release_year || 9999) || a.name.localeCompare(b.name))
 
   const toggle = (id) => setSelected(s => s.includes(id) ? s.filter(x => x !== id) : [...s, id])
 
@@ -266,7 +266,7 @@ function AddEntryModal({ collection, userId, existingIds, onClose, onSaved }) {
                   }
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>{item.category}{item.subcategory ? ` · ${item.subcategory}` : ''}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>{item.category}{item.subcategory ? ` · ${item.subcategory}` : ''}{item.release_year ? ` · ${item.release_year}` : ''}</div>
                   </div>
                   {selected.includes(item.id) && <Check size={16} style={{ color: 'var(--accent)', flexShrink: 0 }} />}
                 </button>
@@ -398,6 +398,7 @@ function CollectionDetail({ collection, userId, onBack, onRefresh }) {
                   <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{media.name}</div>
                   <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>
                     {media.category}{media.subcategory ? ` · ${media.subcategory}` : ''}
+                    {media.release_year ? ` · ${media.release_year}` : ''}
                     {media.seasons ? ` · ${media.seasons} Season${media.seasons > 1 ? 's' : ''}` : ''}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
