@@ -292,6 +292,7 @@ function CollectionDetail({ collection, userId, onBack, onRefresh }) {
   const [loading, setLoading] = useState(true)
   const [showAddEntry, setShowAddEntry] = useState(false)
   const [showEdit, setShowEdit] = useState(false)
+  const [sortingByYear, setSortingByYear] = useState(false)
 
   useEffect(() => { loadItems() }, [collection.id])
 
@@ -306,7 +307,23 @@ function CollectionDetail({ collection, userId, onBack, onRefresh }) {
     setLoading(false)
   }
 
-  const handleDelete = async () => {
+  const handleSortByYear = async () => {
+    const withYear = items.filter(i => i.media?.release_year)
+    if (!withYear.length) { alert('No entries have a release year set. Use "Fix Years" in the category pages first.'); return }
+    setSortingByYear(true)
+    // Sort items by release year, keep items without year at the end
+    const sorted = [...items].sort((a, b) => {
+      const ya = a.media?.release_year || 9999
+      const yb = b.media?.release_year || 9999
+      return ya - yb
+    })
+    // Update watch_order for all items
+    await Promise.all(sorted.map((item, index) =>
+      supabase.from('collection_items').update({ watch_order: index + 1 }).eq('id', item.id)
+    ))
+    setSortingByYear(false)
+    loadItems()
+  }
     if (!confirm(`Delete "${collection.name}" collection?`)) return
     await supabase.from('collections').delete().eq('id', collection.id)
     onRefresh()
@@ -357,6 +374,10 @@ function CollectionDetail({ collection, userId, onBack, onRefresh }) {
             </button>
             <button className="btn btn-secondary" onClick={() => setShowEdit(true)} style={{ padding: '8px 14px', fontSize: '13px' }}>
               <Edit2 size={13} /> Edit
+            </button>
+            <button onClick={handleSortByYear} disabled={sortingByYear}
+              style={{ padding: '8px 14px', fontSize: '13px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-secondary)', color: 'var(--text-muted)', cursor: sortingByYear ? 'default' : 'pointer', fontFamily: 'var(--font-body)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+              📅 {sortingByYear ? 'Sorting...' : 'Sort by Year'}
             </button>
             <button onClick={handleDelete} style={{ padding: '8px 14px', fontSize: '13px', borderRadius: '8px', border: '1px solid rgba(230,57,70,0.3)', background: 'rgba(230,57,70,0.1)', color: 'var(--accent)', cursor: 'pointer', fontFamily: 'var(--font-body)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Trash2 size={13} /> Delete
