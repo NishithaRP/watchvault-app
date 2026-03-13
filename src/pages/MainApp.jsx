@@ -1,20 +1,22 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import { Film, Tv, Sparkles, BookOpen, LayoutDashboard, LogOut, Plus, Menu, X, BarChart2, Sun, Moon } from 'lucide-react'
+import { Film, Tv, Sparkles, BookOpen, LayoutDashboard, LogOut, Plus, Menu, X, BarChart2, Sun, Moon, Library } from 'lucide-react'
 import Dashboard from '../components/Dashboard'
 import MediaList from '../components/MediaList'
 import AddMediaModal from '../components/AddMediaModal'
 import StatsPage from '../components/StatsPage'
+import CollectionsPage from '../components/CollectionsPage'
 
 const NAV_ITEMS = [
-  { id: 'dashboard',  label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'stats',      label: 'Stats',     icon: BarChart2 },
-  { id: 'movies',     label: 'Movies',    icon: Film,      category: 'movie' },
-  { id: 'series',     label: 'TV Series', icon: Tv,        category: 'series' },
-  { id: 'anime',      label: 'Anime',     icon: Sparkles,  category: 'anime' },
-  { id: 'animation',  label: 'Animation', icon: Film,      category: 'animation' },
-  { id: 'donghua',    label: 'Donghua',   icon: Tv,        category: 'donghua' },
-  { id: 'manhwa',     label: 'Manhwa',    icon: BookOpen,  category: 'manhwa' },
+  { id: 'dashboard',   label: 'Dashboard',   icon: LayoutDashboard },
+  { id: 'stats',       label: 'Stats',        icon: BarChart2 },
+  { id: 'collections', label: 'Collections',  icon: Library },
+  { id: 'movies',      label: 'Movies',       icon: Film,      category: 'movie' },
+  { id: 'series',      label: 'TV Series',    icon: Tv,        category: 'series' },
+  { id: 'anime',       label: 'Anime',        icon: Sparkles,  category: 'anime' },
+  { id: 'animation',   label: 'Animation',    icon: Film,      category: 'animation' },
+  { id: 'donghua',     label: 'Donghua',      icon: Tv,        category: 'donghua' },
+  { id: 'manhwa',      label: 'Manhwa',       icon: BookOpen,  category: 'manhwa' },
 ]
 
 const STATUS_LABELS_MAP = {
@@ -176,10 +178,11 @@ export default function MainApp({ session, theme, toggleTheme }) {
 
         {/* Page */}
         <div style={{ padding: isMobile ? '14px' : '24px 28px' }} key={refreshKey}>
-          {activeTab === 'dashboard' && <Dashboard onNavigate={handleNavigate} onStatusClick={handleStatusClick} userId={session.user.id} />}
-          {activeTab === 'stats'     && <StatsPage userId={session.user.id} />}
-          {activeTab === 'all'       && <MediaList category={null} userId={session.user.id} onAdd={() => setShowAdd(true)} defaultStatus={statusFilter} />}
-          {!['dashboard','stats','all'].includes(activeTab) && (
+          {activeTab === 'dashboard'   && <Dashboard onNavigate={handleNavigate} onStatusClick={handleStatusClick} userId={session.user.id} />}
+          {activeTab === 'stats'       && <StatsPage userId={session.user.id} />}
+          {activeTab === 'collections' && <CollectionsPage userId={session.user.id} />}
+          {activeTab === 'all'         && <MediaList category={null} userId={session.user.id} onAdd={() => setShowAdd(true)} defaultStatus={statusFilter} />}
+          {!['dashboard','stats','collections','all'].includes(activeTab) && (
             <MediaList category={activeItem?.category} userId={session.user.id} onAdd={() => setShowAdd(true)} />
           )}
         </div>
