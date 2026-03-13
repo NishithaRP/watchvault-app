@@ -368,7 +368,7 @@ function CollectionDetail({ collection, userId, onBack, onRefresh }) {
           <h2 style={{ fontSize: '1.6rem', fontWeight: 700, marginBottom: '6px' }}>{collection.name}</h2>
           {collection.notes && <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '12px' }}>{collection.notes}</p>}
           <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '14px' }}>{items.length} {items.length === 1 ? 'entry' : 'entries'}</div>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
             <button className="btn btn-primary" onClick={() => setShowAddEntry(true)} style={{ padding: '8px 14px', fontSize: '13px' }}>
               <Plus size={14} /> Add Entry
             </button>
@@ -376,8 +376,8 @@ function CollectionDetail({ collection, userId, onBack, onRefresh }) {
               <Edit2 size={13} /> Edit
             </button>
             <button onClick={handleSortByYear} disabled={sortingByYear}
-              style={{ padding: '8px 14px', fontSize: '13px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-secondary)', color: 'var(--text-muted)', cursor: sortingByYear ? 'default' : 'pointer', fontFamily: 'var(--font-body)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
-              📅 {sortingByYear ? 'Sorting...' : 'Sort by Year'}
+              style={{ padding: '8px 14px', fontSize: '13px', borderRadius: '8px', border: '1px solid #4361ee', background: 'rgba(67,97,238,0.1)', color: '#4361ee', cursor: sortingByYear ? 'default' : 'pointer', fontFamily: 'var(--font-body)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+              {sortingByYear ? 'Sorting...' : 'Sort by Year'}
             </button>
             <button onClick={handleDelete} style={{ padding: '8px 14px', fontSize: '13px', borderRadius: '8px', border: '1px solid rgba(230,57,70,0.3)', background: 'rgba(230,57,70,0.1)', color: 'var(--accent)', cursor: 'pointer', fontFamily: 'var(--font-body)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Trash2 size={13} /> Delete
