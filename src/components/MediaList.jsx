@@ -10,6 +10,8 @@ const STATUS_LABELS = {
   dropped:       { label: 'Dropped',       class: 'badge-dropped' },
 }
 
+const STATUS_ORDER = { watching: 0, completed: 1, plan_to_watch: 2, dropped: 3 }
+
 const CATEGORY_CONFIG = {
   movie:     { label: 'Movie',      emoji: '🎬' },
   series:    { label: 'TV Series',  emoji: '📺' },
@@ -31,6 +33,7 @@ export default function MediaList({ category, userId, onAdd, defaultStatus }) {
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [subcatFilter, setSubcatFilter] = useState('all')
   const [ratingFilter, setRatingFilter] = useState('all')
+  const [sortOrder, setSortOrder] = useState(() => localStorage.getItem('wv-sort') || 'date_desc')
   const [editItem, setEditItem] = useState(null)
   const [countries, setCountries] = useState([])
   const [cardSize, setCardSize] = useState(() => localStorage.getItem('wv-cardsize') || 'detailed')
@@ -44,13 +47,11 @@ export default function MediaList({ category, userId, onAdd, defaultStatus }) {
   // Prevent body scroll when modal is open
   useEffect(() => {
     if (editItem) {
-      // Save current scroll position and lock body
       const scrollY = window.scrollY
       document.body.style.position = 'fixed'
       document.body.style.top = `-${scrollY}px`
       document.body.style.width = '100%'
     } else {
-      // Restore scroll position when modal closes
       const scrollY = document.body.style.top
       document.body.style.position = ''
       document.body.style.top = ''
@@ -67,6 +68,11 @@ export default function MediaList({ category, userId, onAdd, defaultStatus }) {
   const toggleCardSize = (size) => {
     setCardSize(size)
     localStorage.setItem('wv-cardsize', size)
+  }
+
+  const handleSortChange = (val) => {
+    setSortOrder(val)
+    localStorage.setItem('wv-sort', val)
   }
 
   const loadItems = async () => {
@@ -103,6 +109,23 @@ export default function MediaList({ category, userId, onAdd, defaultStatus }) {
       ratingFilter === '5-7' ? item.rating >= 5 && item.rating <= 7 :
       ratingFilter === '1-4' ? item.rating >= 1 && item.rating <= 4 : true
     return matchSearch && matchStatus && matchCountry && matchCat && matchSubcat && matchRating
+  })
+
+  const sorted = [...filtered].sort((a, b) => {
+    switch (sortOrder) {
+      case 'date_desc': return new Date(b.created_at) - new Date(a.created_at)
+      case 'date_asc':  return new Date(a.created_at) - new Date(b.created_at)
+      case 'rating_desc':
+        if ((b.rating || 0) !== (a.rating || 0)) return (b.rating || 0) - (a.rating || 0)
+        return a.name.localeCompare(b.name)
+      case 'rating_asc':
+        if ((a.rating || 0) !== (b.rating || 0)) return (a.rating || 0) - (b.rating || 0)
+        return a.name.localeCompare(b.name)
+      case 'title_asc':  return a.name.localeCompare(b.name)
+      case 'title_desc': return b.name.localeCompare(a.name)
+      case 'status':     return (STATUS_ORDER[a.status] ?? 9) - (STATUS_ORDER[b.status] ?? 9)
+      default: return 0
+    }
   })
 
   const gridCols = cardSize === 'compact'
@@ -156,6 +179,17 @@ export default function MediaList({ category, userId, onAdd, defaultStatus }) {
           <option value="unrated">Unrated</option>
         </select>
 
+        {/* Sort dropdown */}
+        <select className="input" value={sortOrder} onChange={e => handleSortChange(e.target.value)} style={{ width: 'auto', minWidth: '170px' }}>
+          <option value="date_desc">↓ Date Added (Newest)</option>
+          <option value="date_asc">↑ Date Added (Oldest)</option>
+          <option value="rating_desc">↓ Rating (High to Low)</option>
+          <option value="rating_asc">↑ Rating (Low to High)</option>
+          <option value="title_asc">A→Z Title</option>
+          <option value="title_desc">Z→A Title</option>
+          <option value="status">Status</option>
+        </select>
+
         {/* Card size toggle */}
         <div style={{ display: 'flex', background: 'var(--bg-secondary)', borderRadius: '8px', padding: '3px', gap: '2px', border: '1px solid var(--border)' }}>
           <button onClick={() => toggleCardSize('compact')} title="Compact view"
@@ -169,7 +203,7 @@ export default function MediaList({ category, userId, onAdd, defaultStatus }) {
         </div>
 
         <div style={{ color: 'var(--text-muted)', fontSize: '13px', whiteSpace: 'nowrap' }}>
-          {filtered.length} {filtered.length === 1 ? 'entry' : 'entries'}
+          {sorted.length} {sorted.length === 1 ? 'entry' : 'entries'}
         </div>
       </div>
 
@@ -178,7 +212,7 @@ export default function MediaList({ category, userId, onAdd, defaultStatus }) {
         <div style={{ display: 'grid', gridTemplateColumns: gridCols, gap: '16px' }}>
           {[...Array(8)].map((_, i) => <div key={i} className="card" style={{ height: cardSize === 'compact' ? '280px' : '340px', animation: 'pulse 1.5s infinite' }} />)}
         </div>
-      ) : filtered.length === 0 ? (
+      ) : sorted.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '80px 40px', background: 'var(--bg-card)', borderRadius: '16px', border: '1px dashed var(--border-light)' }}>
           <Film size={40} style={{ color: 'var(--text-muted)', marginBottom: '16px' }} />
           <h3 style={{ marginBottom: '8px' }}>No entries found</h3>
@@ -189,7 +223,7 @@ export default function MediaList({ category, userId, onAdd, defaultStatus }) {
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: gridCols, gap: '16px' }}>
-          {filtered.map(item => (
+          {sorted.map(item => (
             <MediaCard key={item.id} item={item}
               onEdit={() => setEditItem(item)}
               onDelete={() => handleDelete(item.id)}
@@ -215,9 +249,6 @@ function MediaCard({ item, onEdit, onDelete, showCategory, cardSize, isTouch }) 
   const catCfg = CATEGORY_CONFIG[item.category]
   const isCompact = cardSize === 'compact'
 
-  // On touch devices always show buttons, on desktop show on hover
-  const showButtons = isTouch || hovered
-
   return (
     <div className="card" style={{ position: 'relative', display: 'flex', flexDirection: 'column' }}
       onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
@@ -231,7 +262,6 @@ function MediaCard({ item, onEdit, onDelete, showCategory, cardSize, isTouch }) 
 
         {/* Edit/delete — hover on desktop, always visible on mobile */}
         {isTouch ? (
-          // Mobile: small buttons always visible in top-right corner
           <div style={{ position: 'absolute', top: '6px', right: '6px', display: 'flex', gap: '5px' }}>
             <button onClick={onEdit} style={{ padding: '7px', borderRadius: '8px', background: 'rgba(0,0,0,0.65)', border: '1px solid rgba(255,255,255,0.15)', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
               <Edit2 size={13} />
@@ -241,7 +271,6 @@ function MediaCard({ item, onEdit, onDelete, showCategory, cardSize, isTouch }) 
             </button>
           </div>
         ) : (
-          // Desktop: overlay on hover
           hovered && (
             <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', animation: 'fadeIn 0.15s ease' }}>
               <button onClick={onEdit} style={{ padding: '10px', borderRadius: '10px', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><Edit2 size={16} /></button>
@@ -253,7 +282,6 @@ function MediaCard({ item, onEdit, onDelete, showCategory, cardSize, isTouch }) 
 
       {/* Info section */}
       <div style={{ padding: isCompact ? '8px 10px' : '12px 14px', display: 'flex', flexDirection: 'column', gap: isCompact ? '4px' : '8px', flex: 1 }}>
-
         <div style={{ fontSize: isCompact ? '12px' : '14px', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.3 }}>
           {item.name}
         </div>
