@@ -41,9 +41,20 @@ function CollectionModal({ collection, userId, onClose, onSaved }) {
     clearTimeout(searchTimer.current)
     searchTimer.current = setTimeout(async () => {
       setSearching(true)
-      // Search movies for cover (works for all types)
-      const results = await searchPosters(searchQuery, 'movie')
-      setSearchResults(results.slice(0, 6))
+      // Search both TMDB (movies/series) and AniList (anime) in parallel
+      const [tmdbResults, animeResults] = await Promise.all([
+        searchPosters(searchQuery, 'movie'),
+        searchPosters(searchQuery, 'anime'),
+      ])
+      // Merge, deduplicate by title
+      const seen = new Set()
+      const merged = []
+      for (const r of [...tmdbResults, ...animeResults]) {
+        if (merged.length >= 6) break
+        const key = r.title?.toLowerCase().trim()
+        if (key && !seen.has(key)) { seen.add(key); merged.push(r) }
+      }
+      setSearchResults(merged)
       setSearching(false)
     }, 600)
     return () => clearTimeout(searchTimer.current)
