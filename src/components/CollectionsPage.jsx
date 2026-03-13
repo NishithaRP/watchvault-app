@@ -171,6 +171,17 @@ function AddEntryModal({ collection, userId, existingIds, onClose, onSaved }) {
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState([])
   const [saving, setSaving] = useState(false)
+  const [categoryFilter, setCategoryFilter] = useState('all')
+
+  const CATEGORIES = [
+    { value: 'all',       label: '🗂 All' },
+    { value: 'movie',     label: '🎬 Movie' },
+    { value: 'series',    label: '📺 Series' },
+    { value: 'anime',     label: '✨ Anime' },
+    { value: 'animation', label: '🎨 Animation' },
+    { value: 'donghua',   label: '🐉 Donghua' },
+    { value: 'manhwa',    label: '📖 Manhwa' },
+  ]
 
   useEffect(() => {
     supabase.from('media').select('*').eq('user_id', userId)
@@ -179,7 +190,8 @@ function AddEntryModal({ collection, userId, existingIds, onClose, onSaved }) {
 
   const filtered = allMedia.filter(m =>
     !existingIds.has(m.id) &&
-    m.name.toLowerCase().includes(search.toLowerCase())
+    m.name.toLowerCase().includes(search.toLowerCase()) &&
+    (categoryFilter === 'all' || m.category === categoryFilter)
   )
 
   const toggle = (id) => setSelected(s => s.includes(id) ? s.filter(x => x !== id) : [...s, id])
@@ -218,6 +230,20 @@ function AddEntryModal({ collection, userId, existingIds, onClose, onSaved }) {
               <Search size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
               <input className="input" placeholder="Search your vault..." value={search}
                 onChange={e => setSearch(e.target.value)} style={{ paddingLeft: '34px' }} />
+            </div>
+
+            {/* Category filter */}
+            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              {CATEGORIES.map(cat => (
+                <button key={cat.value} onClick={() => setCategoryFilter(cat.value)}
+                  style={{ padding: '4px 10px', borderRadius: '20px', border: '1px solid', fontSize: '11px', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)', transition: 'all 0.15s',
+                    borderColor: categoryFilter === cat.value ? 'var(--accent)' : 'var(--border)',
+                    background: categoryFilter === cat.value ? 'var(--accent-dim)' : 'var(--bg-secondary)',
+                    color: categoryFilter === cat.value ? 'var(--accent)' : 'var(--text-muted)',
+                  }}>
+                  {cat.label}
+                </button>
+              ))}
             </div>
 
             {selected.length > 0 && (
