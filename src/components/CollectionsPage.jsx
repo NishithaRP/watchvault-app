@@ -1,6 +1,35 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../lib/supabase'
-import { Plus, X, Search, Loader, Edit2, Trash2, ChevronUp, ChevronDown, Check, BookMarked } from 'lucide-react'
+import { Plus, X, Search, Loader, Edit2, Trash2, ChevronUp, ChevronDown, Check, BookMarked, Download } from 'lucide-react'
+
+const exportCollectionCSV = (collection, items) => {
+  const headers = ['#', 'Title', 'Category', 'Type', 'Status', 'Rating', 'Release Year', 'Country', 'Seasons', 'Notes']
+  const lines = [
+    headers.join(','),
+    ...items.map((item, index) => {
+      const m = item.media || {}
+      return [
+        index + 1,
+        `"${(m.name || '').replace(/"/g, '""')}"`,
+        m.category || '',
+        m.subcategory || '',
+        m.status || '',
+        m.rating || '',
+        m.release_year || '',
+        `"${(m.country || '').replace(/"/g, '""')}"`,
+        m.seasons || '',
+        `"${(m.notes || '').replace(/"/g, '""')}"`,
+      ].join(',')
+    })
+  ]
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${collection.name.replace(/[^a-z0-9]/gi, '_')}-watchorder-${new Date().toISOString().slice(0,10)}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+}
 import { searchPosters } from './posterSearch'
 
 const SOURCE_LABELS = {
@@ -339,6 +368,10 @@ function CollectionDetail({ collection, userId, onBack, onRefresh }) {
             <button onClick={handleSortByYear} disabled={sortingByYear}
               style={{ padding: '8px 14px', fontSize: '13px', borderRadius: '8px', border: '1px solid #4361ee', background: 'rgba(67,97,238,0.1)', color: '#4361ee', cursor: sortingByYear ? 'default' : 'pointer', fontFamily: 'var(--font-body)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
               {sortingByYear ? 'Sorting...' : 'Sort by Year'}
+            </button>
+            <button onClick={() => exportCollectionCSV(collection, items)}
+              style={{ padding: '8px 14px', fontSize: '13px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-secondary)', color: 'var(--text-muted)', cursor: 'pointer', fontFamily: 'var(--font-body)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Download size={13} /> Export CSV
             </button>
             <button onClick={handleDelete}
               style={{ padding: '8px 14px', fontSize: '13px', borderRadius: '8px', border: '1px solid rgba(230,57,70,0.3)', background: 'rgba(230,57,70,0.1)', color: 'var(--accent)', cursor: 'pointer', fontFamily: 'var(--font-body)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>

@@ -1,8 +1,32 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import { Film, Search, Star, Trash2, Edit2, Plus, Globe, LayoutGrid, Grid, Wand2 } from 'lucide-react'
+import { Film, Search, Star, Trash2, Edit2, Plus, Globe, LayoutGrid, Grid, Wand2, Download } from 'lucide-react'
 import EditMediaModal from './EditMediaModal'
 import { searchPosters } from './posterSearch'
+
+const exportCSV = (rows, filename) => {
+  const headers = ['Title', 'Category', 'Type', 'Status', 'Rating', 'Country', 'Seasons', 'Current Season', 'Release Year', 'Notes']
+  const lines = [
+    headers.join(','),
+    ...rows.map(r => [
+      `"${(r.name || '').replace(/"/g, '""')}"`,
+      r.category || '',
+      r.subcategory || '',
+      r.status || '',
+      r.rating || '',
+      `"${(r.country || '').replace(/"/g, '""')}"`,
+      r.seasons || '',
+      r.current_season || '',
+      r.release_year || '',
+      `"${(r.notes || '').replace(/"/g, '""')}"`,
+    ].join(','))
+  ]
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url; a.download = filename; a.click()
+  URL.revokeObjectURL(url)
+}
 
 const STATUS_LABELS = {
   watching:      { label: 'Watching',      class: 'badge-watching' },
@@ -248,6 +272,12 @@ export default function MediaList({ category, userId, onAdd, defaultStatus }) {
         <div style={{ color: 'var(--text-muted)', fontSize: '13px', whiteSpace: 'nowrap' }}>
           {sorted.length} {sorted.length === 1 ? 'entry' : 'entries'}
         </div>
+
+        {/* Export CSV */}
+        <button onClick={() => exportCSV(sorted, `watchvault-${category || 'all'}-${new Date().toISOString().slice(0,10)}.csv`)}
+          style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-secondary)', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '12px', fontWeight: 600, fontFamily: 'var(--font-body)', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}>
+          <Download size={13} /> Export CSV
+        </button>
       </div>
 
       {/* Grid */}
