@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import { Film, Search, Star, Trash2, Edit2, Plus, Globe, LayoutGrid, Grid, Wand2, Download } from 'lucide-react'
+import { Film, Search, Star, Trash2, Edit2, Plus, Globe, LayoutGrid, Grid, Wand2, Download, Library } from 'lucide-react'
 import EditMediaModal from './EditMediaModal'
 import { searchPosters } from './posterSearch'
 
@@ -65,6 +65,7 @@ export default function MediaList({ category, userId, onAdd, defaultStatus }) {
   const [countries, setCountries] = useState([])
   const [cardSize, setCardSize] = useState(() => localStorage.getItem('wv-cardsize') || 'detailed')
   const [isTouch, setIsTouch] = useState(false)
+  const [collectionMap, setCollectionMap] = useState({}) // mediaId -> [collectionName, ...]
 
   useEffect(() => {
     setIsTouch(isTouchDevice())
@@ -137,6 +138,20 @@ export default function MediaList({ category, userId, onAdd, defaultStatus }) {
     if (data) {
       setItems(data)
       setCountries([...new Set(data.map(i => i.country).filter(Boolean))])
+      // Load collection memberships for all items
+      const ids = data.map(i => i.id)
+      if (ids.length) {
+        const { data: memberships } = await supabase
+          .from('collection_items')
+          .select('media_id, collections(name)')
+          .in('media_id', ids)
+        const map = {}
+        for (const m of memberships || []) {
+          if (!map[m.media_id]) map[m.media_id] = []
+          if (m.collections?.name) map[m.media_id].push(m.collections.name)
+        }
+        setCollectionMap(map)
+      }
     }
     setLoading(false)
   }
@@ -302,7 +317,8 @@ export default function MediaList({ category, userId, onAdd, defaultStatus }) {
               onDelete={() => handleDelete(item.id)}
               showCategory={isAllCategories}
               cardSize={cardSize}
-              isTouch={isTouch} />
+              isTouch={isTouch}
+              collectionNames={collectionMap[item.id] || []} />
           ))}
         </div>
       )}
@@ -316,7 +332,7 @@ export default function MediaList({ category, userId, onAdd, defaultStatus }) {
   )
 }
 
-function MediaCard({ item, onEdit, onDelete, showCategory, cardSize, isTouch }) {
+function MediaCard({ item, onEdit, onDelete, showCategory, cardSize, isTouch, collectionNames }) {
   const [hovered, setHovered] = useState(false)
   const statusCfg = STATUS_LABELS[item.status]
   const catCfg = CATEGORY_CONFIG[item.category]
@@ -358,6 +374,15 @@ function MediaCard({ item, onEdit, onDelete, showCategory, cardSize, isTouch }) 
         <div style={{ fontSize: isCompact ? '12px' : '14px', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.3 }}>
           {item.name}
         </div>
+
+        {collectionNames.length > 0 && (
+          <div title={collectionNames.join(', ')} style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#4361ee', fontSize: '11px', fontWeight: 600 }}>
+            <Library size={11} />
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {collectionNames.length === 1 ? collectionNames[0] : `${collectionNames.length} collections`}
+            </span>
+          </div>
+        )}
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
           <span style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)', background: 'var(--bg-secondary)', borderRadius: '5px', padding: '2px 6px' }}>

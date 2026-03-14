@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import { X, Wand2 } from 'lucide-react'
+import { X, Wand2, Library } from 'lucide-react'
 import { searchPosters } from './posterSearch'
 
 const COUNTRIES = [
@@ -36,6 +36,22 @@ export default function EditMediaModal({ item, onClose, onSaved, userId }) {
   const [hoverRating, setHoverRating] = useState(0)
   const [fetchingYear, setFetchingYear] = useState(false)
   const [yearFetched, setYearFetched] = useState(false)
+  const [allCollections, setAllCollections] = useState([])
+  const [itemCollections, setItemCollections] = useState(new Set())
+  const [savingCollections, setSavingCollections] = useState(false)
+
+  useEffect(() => {
+    // Load all collections and which ones this item belongs to
+    const load = async () => {
+      const [{ data: cols }, { data: memberships }] = await Promise.all([
+        supabase.from('collections').select('id, name').eq('user_id', userId).order('name'),
+        supabase.from('collection_items').select('collection_id').eq('media_id', item.id),
+      ])
+      setAllCollections(cols || [])
+      setItemCollections(new Set((memberships || []).map(m => m.collection_id)))
+    }
+    load()
+  }, [item.id, userId])
 
   const set = (key, val) => setForm(f => ({ ...f, [key]: val }))
 
@@ -43,7 +59,26 @@ export default function EditMediaModal({ item, onClose, onSaved, userId }) {
   const needsSeasons = HAS_SEASONS.includes(item.category) &&
     (!isSeries || form.subcategory === 'series')
 
-  const handleFetchYear = async () => {
+  const toggleCollection = async (collectionId) => {
+    setSavingCollections(true)
+    const inCollection = itemCollections.has(collectionId)
+    if (inCollection) {
+      await supabase.from('collection_items')
+        .delete().eq('collection_id', collectionId).eq('media_id', item.id)
+      setItemCollections(s => { const n = new Set(s); n.delete(collectionId); return n })
+    } else {
+      // Get next watch_order
+      const { data } = await supabase.from('collection_items')
+        .select('watch_order').eq('collection_id', collectionId)
+        .order('watch_order', { ascending: false }).limit(1)
+      const nextOrder = (data?.[0]?.watch_order || 0) + 1
+      await supabase.from('collection_items').insert({
+        collection_id: collectionId, media_id: item.id, watch_order: nextOrder
+      })
+      setItemCollections(s => new Set([...s, collectionId]))
+    }
+    setSavingCollections(false)
+  }
     setFetchingYear(true)
     setYearFetched(false)
     try {
@@ -182,6 +217,29 @@ export default function EditMediaModal({ item, onClose, onSaved, userId }) {
                 ))}
               </div>
             </div>
+
+            {allCollections.length > 0 && (
+              <div className="form-group">
+                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Library size={13} /> Collections
+                </label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                  {allCollections.map(col => {
+                    const inCol = itemCollections.has(col.id)
+                    return (
+                      <button key={col.id} onClick={() => toggleCollection(col.id)} disabled={savingCollections}
+                        style={{ padding: '5px 12px', borderRadius: '20px', border: '1px solid', fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-body)', transition: 'all 0.15s',
+                          borderColor: inCol ? '#4361ee' : 'var(--border)',
+                          background: inCol ? 'rgba(67,97,238,0.15)' : 'var(--bg-secondary)',
+                          color: inCol ? '#4361ee' : 'var(--text-muted)',
+                        }}>
+                        {inCol ? '✓ ' : ''}{col.name}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
 
             <div className="form-group">
               <label className="form-label">Notes</label>
