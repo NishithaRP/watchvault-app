@@ -43,6 +43,7 @@ async function searchTMDB(query, category) {
         title: r.title || r.name,
         poster: `https://image.tmdb.org/t/p/w300${r.poster_path}`,
         year: (r.release_date || r.first_air_date || '').slice(0, 4),
+        release_date: r.release_date || r.first_air_date || null,
         source: 'TMDB',
       }))
   } catch { return [] }
@@ -94,7 +95,7 @@ async function aniListQuery(query, type, countryOfOrigin) {
           format
           title { english romaji native }
           coverImage { large }
-          startDate { year }
+          startDate { year month day }
           countryOfOrigin
         }
       }
@@ -147,6 +148,9 @@ async function searchAniList(query, category) {
         title: m.title.english || m.title.romaji || m.title.native,
         poster: m.coverImage.large,
         year: m.startDate?.year ? String(m.startDate.year) : '',
+        release_date: m.startDate?.year
+          ? `${m.startDate.year}-${String(m.startDate.month || 1).padStart(2,'0')}-${String(m.startDate.day || 1).padStart(2,'0')}`
+          : null,
         country: ANILIST_COUNTRY_MAP[m.countryOfOrigin] || '',
         source: 'AniList',
       }))

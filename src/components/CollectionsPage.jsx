@@ -270,10 +270,17 @@ function CollectionDetail({ collection, userId, onBack, onRefresh }) {
   }
 
   const handleSortByYear = async () => {
-    const withYear = items.filter(i => i.media?.release_year)
-    if (!withYear.length) { alert('No entries have a release year. Use Fix Years in category pages first.'); return }
+    const withDate = items.filter(i => i.media?.release_date || i.media?.release_year)
+    if (!withDate.length) { alert('No entries have a release date. Use Fix Years in category pages first.'); return }
     setSortingByYear(true)
-    const sorted = [...items].sort((a, b) => (a.media?.release_year || 9999) - (b.media?.release_year || 9999))
+    const sorted = [...items].sort((a, b) => {
+      const da = a.media?.release_date || (a.media?.release_year ? `${a.media.release_year}-01-01` : null)
+      const db = b.media?.release_date || (b.media?.release_year ? `${b.media.release_year}-01-01` : null)
+      if (!da && !db) return 0
+      if (!da) return 1
+      if (!db) return -1
+      return new Date(da) - new Date(db)
+    })
     await Promise.all(sorted.map((item, index) =>
       supabase.from('collection_items').update({ watch_order: index + 1 }).eq('id', item.id)
     ))

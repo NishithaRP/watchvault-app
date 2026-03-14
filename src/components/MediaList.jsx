@@ -90,7 +90,10 @@ export default function MediaList({ category, userId, onAdd, defaultStatus }) {
         const results = await searchPosters(item.name, item.category)
         const match = results.find(r => r.title?.toLowerCase().trim() === item.name.toLowerCase().trim()) || results[0]
         if (match?.year) {
-          await supabase.from('media').update({ release_year: parseInt(match.year) }).eq('id', item.id)
+          await supabase.from('media').update({
+            release_year: parseInt(match.year),
+            release_date: match.release_date || null,
+          }).eq('id', item.id)
         }
       } catch {}
       done++

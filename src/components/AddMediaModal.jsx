@@ -46,7 +46,7 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
   const [form, setForm] = useState({
     name: '', category: initialCategory || 'movie', subcategory: '',
     country: '', status: 'plan_to_watch', rating: 0,
-    seasons: '', current_season: '', image_url: '', notes: '', release_year: '',
+    seasons: '', current_season: '', image_url: '', notes: '', release_year: '', release_date: '',
   })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -105,6 +105,7 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
     set('image_url', result.poster)
     set('name', result.title)
     if (result.year) set('release_year', result.year)
+    if (result.release_date) set('release_date', result.release_date)
     setShowResults(false)
     setSearchResults([])
     if (result.country) set('country', result.country)
@@ -145,6 +146,7 @@ export default function AddMediaModal({ onClose, onSaved, userId, initialCategor
       image_url: form.image_url || null,
       notes: form.notes || null,
       release_year: form.release_year ? parseInt(form.release_year) : null,
+      release_date: form.release_date || null,
     }
     const { error } = await supabase.from('media').insert(payload)
     if (error) { setError(error.message); setSaving(false); return }
