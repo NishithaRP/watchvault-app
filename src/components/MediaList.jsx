@@ -79,7 +79,7 @@ export default function MediaList({ category, userId, onAdd, defaultStatus }) {
   }
 
   const handleFixYears = async () => {
-    const missing = items.filter(i => !i.release_year)
+    const missing = items.filter(i => !i.release_year || !i.release_date)
     if (!missing.length) { alert('All entries already have a release year!'); return }
     if (!confirm(`Auto-fetch release year for ${missing.length} entries without one? This may take a moment.`)) return
     setFixingYears(true)
@@ -225,7 +225,7 @@ export default function MediaList({ category, userId, onAdd, defaultStatus }) {
         </select>
 
         {/* Fix Years button */}
-        {items.some(i => !i.release_year) && (
+        {items.some(i => !i.release_year || !i.release_date) && (
           <button onClick={handleFixYears} disabled={fixingYears}
             style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-secondary)', color: 'var(--text-muted)', cursor: fixingYears ? 'default' : 'pointer', fontSize: '12px', fontWeight: 600, fontFamily: 'var(--font-body)', display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' }}>
             <Wand2 size={13} />
