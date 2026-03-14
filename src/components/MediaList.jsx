@@ -141,16 +141,27 @@ export default function MediaList({ category, userId, onAdd, defaultStatus }) {
       // Load collection memberships for all items
       const ids = data.map(i => i.id)
       if (ids.length) {
-        const { data: memberships } = await supabase
+        // Step 1: get all collection_items for these media ids
+        const { data: ciData } = await supabase
           .from('collection_items')
-          .select('media_id, collections(name)')
+          .select('media_id, collection_id')
           .in('media_id', ids)
-        const map = {}
-        for (const m of memberships || []) {
-          if (!map[m.media_id]) map[m.media_id] = []
-          if (m.collections?.name) map[m.media_id].push(m.collections.name)
+        if (ciData?.length) {
+          // Step 2: get collection names
+          const colIds = [...new Set(ciData.map(c => c.collection_id))]
+          const { data: colData } = await supabase
+            .from('collections')
+            .select('id, name')
+            .in('id', colIds)
+          const colNameMap = Object.fromEntries((colData || []).map(c => [c.id, c.name]))
+          const map = {}
+          for (const ci of ciData) {
+            if (!map[ci.media_id]) map[ci.media_id] = []
+            const name = colNameMap[ci.collection_id]
+            if (name) map[ci.media_id].push(name)
+          }
+          setCollectionMap(map)
         }
-        setCollectionMap(map)
       }
     }
     setLoading(false)
